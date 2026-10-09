@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "scroll-experience": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/scroll-experience/SKILL.md",
+      "computedHash": "34220b940c031deae96f123c2d9d6649181881b4de7c451cc322d7d8509594fb"
+    },
+    "scroll-world": {
+      "source": "oso95/scroll-world",
+      "sourceType": "github",
+      "skillPath": "skills/scroll-world/SKILL.md",
+      "computedHash": "e7ea15d223b6a687840306ab4e3e48ce507df3094c8e78742f6f8b84ae7face0"
+    }
+  }
+}

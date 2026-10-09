@@ -1,0 +1,14 @@
+{
+  "film": "arcos",
+  "aspect": "mobile",
+  "fps": 30,
+  "width": 720,
+  "segments": [
+    {
+      "name": "film",
+      "seconds": 10,
+      "frames": 300,
+      "kb": 982
+    }
+  ]
+}

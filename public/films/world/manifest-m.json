@@ -1,0 +1,62 @@
+{
+  "film": "world",
+  "aspect": "mobile",
+  "fps": 30,
+  "width": 720,
+  "segments": [
+    {
+      "name": "dive-describe",
+      "seconds": 7,
+      "frames": 210,
+      "kb": 1566
+    },
+    {
+      "name": "conn-describe-direct",
+      "seconds": 4.5,
+      "frames": 135,
+      "kb": 902
+    },
+    {
+      "name": "dive-direct",
+      "seconds": 7,
+      "frames": 210,
+      "kb": 1375
+    },
+    {
+      "name": "conn-direct-generate",
+      "seconds": 4.5,
+      "frames": 135,
+      "kb": 747
+    },
+    {
+      "name": "dive-generate",
+      "seconds": 7,
+      "frames": 210,
+      "kb": 1331
+    },
+    {
+      "name": "conn-generate-refine",
+      "seconds": 4.5,
+      "frames": 135,
+      "kb": 642
+    },
+    {
+      "name": "dive-refine",
+      "seconds": 7,
+      "frames": 210,
+      "kb": 1085
+    },
+    {
+      "name": "conn-refine-ship",
+      "seconds": 4.5,
+      "frames": 135,
+      "kb": 738
+    },
+    {
+      "name": "dive-ship",
+      "seconds": 7,
+      "frames": 210,
+      "kb": 1758
+    }
+  ]
+}

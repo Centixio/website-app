@@ -1,0 +1,14 @@
+{
+  "film": "halcyon",
+  "aspect": "mobile",
+  "fps": 30,
+  "width": 720,
+  "segments": [
+    {
+      "name": "film",
+      "seconds": 9,
+      "frames": 270,
+      "kb": 1241
+    }
+  ]
+}

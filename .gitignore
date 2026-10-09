@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Centixio
+/public/vendor
+/.demo-data
+.env*.local
+.env
+!.env.example
+/scripts/.shot-tmp.mjs
+
+# offline film renderer artifacts
+/films/.build
+/films/.preview
+/films/*.log

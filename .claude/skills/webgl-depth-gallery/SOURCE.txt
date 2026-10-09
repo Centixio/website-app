@@ -1,0 +1,1 @@
+Source: https://github.com/nexu-io/open-design/tree/426386581b7032e0bf5aefc0448dc7d4cc434f09/plugins/_official/examples/webgl-depth-gallery (MIT; effect © Houmahani Kane / Codrops)

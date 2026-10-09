@@ -1,0 +1,14 @@
+{
+  "film": "shardfall",
+  "aspect": "desktop",
+  "fps": 30,
+  "width": 1920,
+  "segments": [
+    {
+      "name": "film",
+      "seconds": 9,
+      "frames": 270,
+      "kb": 6137
+    }
+  ]
+}
