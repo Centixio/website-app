@@ -23,10 +23,10 @@ function has(bin: string): boolean {
   }
 }
 
-export async function startTestDb(): Promise<TestDb | null> {
+export async function startTestDb(opts: { setupFile?: boolean } = {}): Promise<TestDb | null> {
   if (process.env.TEST_DATABASE_URL) {
     const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 12 });
-    await applyMigrations(pool);
+    await applyMigrations(pool, opts.setupFile);
     return { pool, stop: () => pool.end() };
   }
   if (!has("initdb") || !has("postgres")) return null;
@@ -43,7 +43,7 @@ export async function startTestDb(): Promise<TestDb | null> {
       await new Promise((r) => setTimeout(r, 100));
     }
   }
-  await applyMigrations(pool);
+  await applyMigrations(pool, opts.setupFile);
   return {
     pool,
     async stop() {
@@ -55,9 +55,13 @@ export async function startTestDb(): Promise<TestDb | null> {
   };
 }
 
-async function applyMigrations(pool: Pool) {
+async function applyMigrations(pool: Pool, setupFile = false) {
   const root = path.resolve(__dirname, "../..");
   await pool.query(fs.readFileSync(path.join(__dirname, "supabase-stubs.sql"), "utf8"));
+  if (setupFile) {
+    await pool.query(fs.readFileSync(path.join(root, "supabase", "setup.sql"), "utf8"));
+    return;
+  }
   const migDir = path.join(root, "supabase", "migrations");
   for (const f of fs.readdirSync(migDir).filter((x) => x.endsWith(".sql")).sort()) {
     await pool.query(fs.readFileSync(path.join(migDir, f), "utf8"));

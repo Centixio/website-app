@@ -30,6 +30,7 @@ const STORE_ERRORS: Record<StoreError["code"], [number, string]> = {
   job_not_owned: [409, "This job is no longer active."],
   invalid: [400, "Invalid request."],
   conflict: [409, "Conflict."],
+  setup_required: [503, "The database hasn't been set up yet. Apply the Supabase migrations (see /setup)."],
 };
 
 export function errorResponse(err: unknown) {

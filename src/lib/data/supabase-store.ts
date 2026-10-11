@@ -32,7 +32,27 @@ function mapError(err: { message?: string; code?: string } | null): never {
     if (msg.includes(code)) throw new StoreError(code);
   }
   if (msg.includes("project_not_found") || msg.includes("job_not_found")) throw new StoreError("not_found");
+  if (isMissingSchema(err)) throw new StoreError("setup_required", "The database hasn't been set up yet. Apply the Supabase migrations.");
   throw new Error(msg);
+}
+
+/** PostgREST/Postgres errors that mean the migrations haven't been applied. */
+export function isMissingSchema(err: { message?: string; code?: string } | null): boolean {
+  const msg = err?.message ?? "";
+  return ["PGRST202", "PGRST205", "42P01", "42883"].includes(err?.code ?? "") || /schema cache|does not exist/i.test(msg);
+}
+
+let schemaReady = false;
+/** Cheap one-time probe: true once the core tables and functions exist. */
+export async function databaseReady(admin: SupabaseClient): Promise<boolean> {
+  if (schemaReady) return true;
+  const [table, fn] = await Promise.all([
+    admin.from("projects").select("id", { head: true, count: "exact" }).limit(1),
+    admin.rpc("credit_summary", { p_user: "00000000-0000-4000-8000-000000000000" }),
+  ]);
+  const missing = [table.error, fn.error].some((e) => e && isMissingSchema(e));
+  if (!missing && !table.error && !fn.error) schemaReady = true;
+  return !missing;
 }
 
 function thumbFrom(spec: DesignSpec | null | undefined): ProjectSummary["thumb"] {

@@ -141,7 +141,7 @@ export interface EnqueueParams {
 
 export class StoreError extends Error {
   constructor(
-    public code: "not_found" | "insufficient_credits" | "concurrency_limit" | "rate_limited" | "job_not_owned" | "invalid" | "conflict",
+    public code: "not_found" | "insufficient_credits" | "concurrency_limit" | "rate_limited" | "job_not_owned" | "invalid" | "conflict" | "setup_required",
     message?: string,
   ) {
     super(message ?? code);

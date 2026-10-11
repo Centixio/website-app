@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { appMode } from "@/lib/env";
 import { createSupabaseServerClient, supabaseAdmin } from "@/lib/supabase/server";
 import { DEMO_COOKIE, verifyDemoSession } from "./demo-session";
-import { SupabaseUserStore } from "@/lib/data/supabase-store";
+import { SupabaseUserStore, databaseReady } from "@/lib/data/supabase-store";
 import { DemoUserStore } from "@/lib/data/demo-store";
 import type { UserStore } from "@/lib/data/types";
 
@@ -42,5 +42,7 @@ export async function getSession(): Promise<Session | null> {
 export async function requireSession(next?: string): Promise<Session> {
   const s = await getSession();
   if (!s) redirect(`/sign-in${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+  // Signed in but the migrations haven't run: explain instead of crashing.
+  if (s.user.mode === "production" && !(await databaseReady(supabaseAdmin()))) redirect("/setup");
   return s;
 }
