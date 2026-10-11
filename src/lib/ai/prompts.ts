@@ -91,7 +91,7 @@ export function briefMessage(input: { prompt: string; settings: unknown; assets:
 export function editMessage(input: { instruction: string; scope: "small" | "major"; current: unknown; settings: unknown; assets: unknown; prompt: string; imageBudget: number; history: { role: string; content: string }[] }): string {
   const scopeRule =
     input.scope === "small"
-      ? "This is a targeted edit. Change only what the request needs. Copy every other field from the current plan exactly, including section order and copy."
+      ? "This is a targeted edit. Change only what the request needs. Copy every other field from the current plan exactly, including section order and copy. If the request asks to show something the page doesn't have (e.g. \"add a car to the hero\") and image_budget > 0, generate that image and place it — do not refuse for lack of a 3D model."
       : "This is a real redesign. The user expects a visibly, substantially better page — not a copy tweak. Re-plan direction, palette, type, section structure, motion and copy as needed to reach award-level quality; add the sections the story is missing; apply the 3D relevance rule; and use the image budget for new subject imagery. Keep the brand name, the facts in the brief and the user's uploaded assets. Existing generated images may be kept by their asset ids.";
   return [
     "Update the current design plan according to the user's request.",

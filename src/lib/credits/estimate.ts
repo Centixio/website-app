@@ -87,7 +87,8 @@ export function classifyEdit(message: string): "small" | "major" {
 }
 
 export function editImageBudget(message: string, opts: EstimateOptions): number {
-  return opts.aiImages && classifyEdit(message) === "major" ? IMAGE_BUDGET.majorEdit : 0;
+  if (!opts.aiImages || isQuestion(message)) return 0;
+  return classifyEdit(message) === "major" ? IMAGE_BUDGET.majorEdit : IMAGE_BUDGET.smallEdit;
 }
 
 export function estimateEdit(message: string, opts: EstimateOptions): CostEstimate {
@@ -106,11 +107,14 @@ export function estimateEdit(message: string, opts: EstimateOptions): CostEstima
       explanation: "This request re-plans the page: direction, structure, copy and imagery.",
     };
   }
+  const images = editImageBudget(message, opts);
+  const lines: CostLine[] = [{ label: "Targeted edit", credits: CREDIT_COSTS.smallEdit }];
+  if (images) lines.push({ label: `Up to ${images} AI image if needed (refunded if not used)`, credits: images * CREDIT_COSTS.generatedImage });
   return {
     action: "edit-small",
-    total: CREDIT_COSTS.smallEdit,
-    lines: [{ label: "Targeted edit", credits: CREDIT_COSTS.smallEdit }],
-    explanation: "Changes only what you asked for and keeps the rest of the design.",
+    total: lines.reduce((n, l) => n + l.credits, 0),
+    lines,
+    explanation: "Changes only what you asked for and keeps the rest of the design. If nothing needs changing, nothing is charged.",
   };
 }
 

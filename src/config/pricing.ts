@@ -58,7 +58,7 @@ export const CREDIT_PACK = {
 
 /** Credit cost of each chargeable action. */
 /** How many images a generation / major redesign may create when AI imagery is on. */
-export const IMAGE_BUDGET = { generation: 4, majorEdit: 3 } as const;
+export const IMAGE_BUDGET = { generation: 4, majorEdit: 3, smallEdit: 1 } as const;
 
 export const CREDIT_COSTS = {
   /** First generation of a website for a project. */

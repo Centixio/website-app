@@ -84,6 +84,7 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
 
     // Subject imagery: generate what the plan art-directed, within the paid budget.
     let imagesMade = 0;
+    let imagesFailed = 0;
     const imageProvider = imageBudget > 0 ? getImageProvider() : null;
     if (imageProvider && plan.imagery?.length) {
       await setStage("creating imagery");
@@ -92,7 +93,8 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
       imagesMade = imagery.created.length;
       ctx.assets.push(...imagery.created);
       assets.push(...imagery.created.map(toSummary));
-      if (imagery.failed.length) console.warn("[job] some images failed", job.id, imagery.failed);
+      imagesFailed = imagery.failed.length;
+      if (imagesFailed) console.warn("[job] some images failed", job.id, imagery.failed);
     } else {
       plan = stripGeneratedRefs(plan);
     }
@@ -117,10 +119,19 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
       throw new ProviderError(`The generated site did not pass validation: ${result.errors.slice(0, 3).join(" ")}`, false, "invalid_output");
     }
 
+    // Nothing changed (e.g. the request couldn't be done): reply, but don't charge or add a version.
+    if (job.kind === "edit" && ctx.baseVersion && sameDesign(built.spec, ctx.baseVersion.spec)) {
+      const reply = (provider.isAI && plan.reply?.trim()) || "I couldn't find anything to change for that request.";
+      await worker.postAssistantMessage(job, `${reply}\n\nThe page wasn't changed, so no credits were charged.`, { kind: "no_change", job_id: job.id });
+      await worker.failJob(job.id, workerId, NO_CHANGE, false);
+      return;
+    }
+
     await setStage("saving");
     // The reservation settles in full; images that weren't made come back as a separate, idempotent refund.
     const charge = job.cost - unusedImageCredits;
-    const message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge, imagesMade, unusedImageCredits, plan.reply);
+    let message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge, imagesMade, unusedImageCredits, plan.reply);
+    if (imagesFailed) message = `${message}\n\nNote: ${imagesFailed} image${imagesFailed === 1 ? "" : "s"} couldn't be generated right now, so ${imagesFailed === 1 ? "it was" : "they were"} left out and refunded. Ask again later to add ${imagesFailed === 1 ? "it" : "them"}.`;
     await worker.completeJob(
       job.id,
       workerId,
@@ -173,6 +184,16 @@ async function loadReference(config: WebsiteConfig, ctx: Awaited<ReturnType<Work
   if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mediaType)) return null;
   const bytes = await ctx.readAsset(asset);
   return { mediaType, base64: Buffer.from(bytes).toString("base64") };
+}
+
+/** Job error used when an edit produced no change (the client shows it as information, not a failure). */
+export const NO_CHANGE = "No changes were made — no credits were charged.";
+
+/** Compares designs ignoring planner notes and key order (stored specs come back from jsonb with sorted keys). */
+function sameDesign(a: DesignSpec, b: DesignSpec): boolean {
+  const canon = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => [k, canon((v as Record<string, unknown>)[k])])) : v;
+  return JSON.stringify(canon({ ...a, notes: [] })) === JSON.stringify(canon({ ...b, notes: [] }));
 }
 
 /** Recent chat turns for context, without the instruction being processed (it is passed separately). */

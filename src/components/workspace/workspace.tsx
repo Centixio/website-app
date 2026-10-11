@@ -161,6 +161,8 @@ export function Workspace({ initial, aiLabel, aiAvailable, aiImages, generationU
             setViewedVersionId(next.project.currentVersionId);
             setMobileTab("preview");
             toast.success(job.kind === "generate" ? "Your landing page is ready" : "Changes applied");
+          } else if (job.status === "failed" && job.error?.startsWith("No changes were made")) {
+            toast.message("No changes made", { description: "Nothing was charged. See the reply in chat." });
           } else if (job.status === "failed") {
             toast.error(job.error ?? "Generation failed", { description: job.cost ? `The ${job.cost} reserved credits were returned.` : undefined, duration: 10000 });
           } else toast.message("Canceled", { description: job.cost ? "Reserved credits were returned." : undefined });

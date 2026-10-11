@@ -51,7 +51,8 @@ describe("cost estimation", () => {
     const off = mergeConfig(DEFAULT_CONFIG, { brand: { imagery: "off" } });
     expect(estimateGeneration(off, IMAGES).total).toBe(CREDIT_COSTS.initialGeneration);
     expect(estimateEdit("Redesign everything", IMAGES).total).toBe(CREDIT_COSTS.majorRedesign + IMAGE_BUDGET.majorEdit * CREDIT_COSTS.generatedImage);
-    expect(estimateEdit("Add a FAQ", IMAGES).total).toBe(CREDIT_COSTS.smallEdit);
+    expect(estimateEdit("Add a FAQ", IMAGES).total).toBe(CREDIT_COSTS.smallEdit + IMAGE_BUDGET.smallEdit * CREDIT_COSTS.generatedImage);
+    expect(estimateEdit("why is the hero dark?", IMAGES).total).toBe(0);
   });
 
   it("only treats a 3D model as the subject when it depicts the brief", () => {

@@ -201,6 +201,8 @@ export interface WorkerStore {
   sweep(timeoutSeconds: number): Promise<Record<string, number>>;
   /** Store an AI-generated image as an asset of the job's project. */
   createGeneratedImage(job: Job, image: { name: string; mimeType: string; bytes: Uint8Array; meta: Asset["meta"] }): Promise<Asset>;
+  /** Post an assistant chat message for the job's project (e.g. when nothing needed changing). */
+  postAssistantMessage(job: Job, content: string, metadata: Record<string, unknown>): Promise<void>;
   /** Return credits the job reserved but did not use (e.g. images that weren't generated). Idempotent per job. */
   refundUnused(job: Job, amount: number, description: string): Promise<void>;
   /** Load what a worker needs, bypassing RLS (the job row identifies the owner). */

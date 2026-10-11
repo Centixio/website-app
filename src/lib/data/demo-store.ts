@@ -557,6 +557,11 @@ export class DemoWorkerStore implements WorkerStore {
       return a;
     });
   }
+  async postAssistantMessage(job: Job, content: string, metadata: Record<string, unknown>) {
+    await tx((db) => {
+      db.messages.push({ id: crypto.randomUUID(), projectId: job.projectId, userId: job.userId, role: "assistant", content: content.slice(0, 8000), metadata, createdAt: now() });
+    });
+  }
   async refundUnused(job: Job, amount: number, description: string) {
     if (amount <= 0) return;
     await tx((db) => {

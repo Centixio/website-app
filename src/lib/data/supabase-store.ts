@@ -446,6 +446,11 @@ export class SupabaseWorkerStore implements WorkerStore {
     return mapAsset(data);
   }
 
+  async postAssistantMessage(job: Job, content: string, metadata: Record<string, unknown>) {
+    const { error } = await this.admin.rpc("add_assistant_message", { p_user: job.userId, p_project: job.projectId, p_content: content, p_metadata: metadata });
+    if (error) mapError(error);
+  }
+
   async refundUnused(job: Job, amount: number, description: string) {
     if (amount <= 0) return;
     const { error } = await this.admin.rpc("grant_credits", { p_user: job.userId, p_source: "refund", p_amount: amount, p_expires: null, p_key: `unused:${job.id}`, p_description: description });
