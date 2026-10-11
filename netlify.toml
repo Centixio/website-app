@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+
+[build.environment]
+  # Netlify's secrets scanner flags any file containing the value of any env var.
+  # These keys hold non-secret settings whose values are ordinary words
+  # ("medium", "inline", "anthropic", …) or are public by design (NEXT_PUBLIC_*
+  # values are inlined into the browser bundle). Real secrets stay scanned.
+  SECRETS_SCAN_OMIT_KEYS = "AI_PROVIDER,ANTHROPIC_MODEL,ANTHROPIC_EFFORT,JOB_RUNNER,ALLOW_RULES_COMPOSER,CENTIXIO_DEMO_MODE,NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,NEXT_PUBLIC_SUPABASE_ANON_KEY,STRIPE_PRICE_STARTER,STRIPE_PRICE_PRO,STRIPE_PRICE_CREDIT_PACK"
