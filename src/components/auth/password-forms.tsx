@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -80,12 +81,12 @@ export function ResetPasswordForm({ supabase }: { supabase: Supa }) {
     <form onSubmit={submit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="password">New password</Label>
-        <Input id="password" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" aria-describedby="pw-hint" />
+        <PasswordInput id="password" autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" aria-describedby="pw-hint" />
         <p id="pw-hint" className="text-xs text-muted-foreground">At least 8 characters.</p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="confirm">Confirm new password</Label>
-        <Input id="confirm" type="password" autoComplete="new-password" minLength={8} required value={confirm} onChange={(e) => setConfirm(e.target.value)} className="h-11" />
+        <PasswordInput id="confirm" autoComplete="new-password" minLength={8} required value={confirm} onChange={(e) => setConfirm(e.target.value)} className="h-11" />
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button type="submit" size="lg" className="h-11 w-full text-base" disabled={busy || password.length < 8}>

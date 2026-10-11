@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -75,7 +76,7 @@ export function AuthForm({ mode, appMode, supabase, next, initialError }: Props)
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" aria-describedby="password-hint" />
+        <PasswordInput id="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" aria-describedby="password-hint" />
         {mode === "sign-up" && <p id="password-hint" className="text-xs text-muted-foreground">At least 8 characters.</p>}
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
