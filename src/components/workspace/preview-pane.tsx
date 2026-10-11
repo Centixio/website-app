@@ -255,7 +255,7 @@ export function PreviewPane({ projectId, versions, currentVersionId, viewedVersi
           <div className="grid h-full place-items-center p-8 text-center">
             <div className="max-w-sm space-y-2">
               <p className="font-display text-3xl">Your preview appears here</p>
-              <p className="text-sm text-muted-foreground">Describe the website in the chat, review the recommended settings, and generate when you&apos;re ready.</p>
+              <p className="text-sm text-muted-foreground">Describe the landing page in the chat, review the recommended settings, and generate when you&apos;re ready.</p>
             </div>
           </div>
         ) : (

@@ -62,7 +62,7 @@ function thumbFrom(spec: DesignSpec | null | undefined): ProjectSummary["thumb"]
     heading: spec.sections?.[0]?.heading ?? spec.brand?.name ?? "",
     modelId: spec.scene?.enabled && spec.scene.source?.type === "catalog" ? spec.scene.source.modelId : null,
     direction: spec.direction,
-    display: spec.typography?.display ?? "Inter",
+    display: spec.typography?.display ?? "Geist",
   };
 }
 

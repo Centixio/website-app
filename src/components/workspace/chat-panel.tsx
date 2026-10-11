@@ -40,7 +40,7 @@ function JobProgress({ job, onCancel }: { job: Job; onCancel: () => void }) {
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">{job.kind === "generate" ? "Generating your site" : job.kind === "repair" ? "Repairing" : "Applying your edit"}</p>
+        <p className="text-sm font-medium">{job.kind === "generate" ? "Generating your landing page" : job.kind === "repair" ? "Repairing" : "Applying your edit"}</p>
         <span className="font-mono text-xs text-muted-foreground">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</span>
       </div>
       <ol className="mt-2 space-y-1">
@@ -95,7 +95,7 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         {visible.length === 0 && !hasVersion && (
           <div className="space-y-2 p-1">
-            <p className="font-display text-2xl leading-tight">Describe your website</p>
+            <p className="font-display text-2xl leading-tight">Describe your landing page</p>
             <p className="text-xs text-muted-foreground">Include what it&apos;s for, who it&apos;s for, and how it should feel. Settings on the right are optional — recommendations fill in the rest.</p>
           </div>
         )}
@@ -119,8 +119,8 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
             }}
             className="space-y-2"
           >
-            <label htmlFor="brief" className="sr-only">Website brief</label>
-            <Textarea id="brief" rows={5} value={brief} maxLength={LIMITS.prompt.maxChars} onChange={(e) => setBrief(e.target.value)} placeholder="A launch site for…" className="resize-none text-sm" />
+            <label htmlFor="brief" className="sr-only">Landing page brief</label>
+            <Textarea id="brief" rows={5} value={brief} maxLength={LIMITS.prompt.maxChars} onChange={(e) => setBrief(e.target.value)} placeholder="A landing page for…" className="resize-none text-sm" />
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-muted-foreground">{aiLabel}</span>
               <Button type="submit" disabled={!!activeJob || sending || brief.trim().length < LIMITS.prompt.minChars || !generationEstimate || !!generationUnavailable}>
@@ -184,7 +184,7 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
           {confirm && (
             <>
               <AlertDialogHeader>
-                <AlertDialogTitle>{confirm.kind === "generate" ? "Generate website?" : confirm.estimate.action === "edit-major" ? "Redesign the site?" : "Send edit?"}</AlertDialogTitle>
+                <AlertDialogTitle>{confirm.kind === "generate" ? "Generate landing page?" : confirm.estimate.action === "edit-major" ? "Redesign the page?" : "Send edit?"}</AlertDialogTitle>
                 <AlertDialogDescription asChild>
                   <div className="space-y-3">
                     <p>{confirm.estimate.explanation}</p>

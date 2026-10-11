@@ -22,7 +22,7 @@ export default async function Page(props: PageProps<"/sign-up">) {
   return (
     <div>
       <h1 className="font-display text-4xl">Create your account</h1>
-      <p className="mb-8 mt-2 text-sm text-muted-foreground">Start building your first 3D website.</p>
+      <p className="mb-8 mt-2 text-sm text-muted-foreground">Start building your first 3D landing page.</p>
       <AuthForm mode="sign-up" appMode={mode} supabase={mode === "production" ? { url: env.supabaseUrl()!, key: env.supabaseAnonKey()! } : null} next={next} initialError={err} />
     </div>
   );

@@ -15,18 +15,18 @@ import { brand } from "@/config/brand";
 const STOPS: WorldStop[] = [
   { id: "describe", label: "Describe", eyebrow: "Describe", title: "Start with a sentence.", body: "Tell Centixio what you're making, who it's for and how it should feel. No design or code knowledge needed.", tags: ["Plain English", "Optional settings"], scroll: 1.6, linger: 0.35 },
   { id: "direct", label: "Direct", eyebrow: "Direct", title: "Get a direction — with reasons.", body: "Palette, typography, a 3D subject and a motion style are recommended for your brief. Keep them, or change anything.", tags: ["Auto — recommended", "Visual previews"], linger: 0.3 },
-  { id: "generate", label: "Generate", eyebrow: "Generate", title: "Built from tested parts.", body: "Your site is planned, assembled from a library of cinematic sections and real-time 3D scenes, and validated before you see it.", tags: ["Cost shown first", "Validated output"], linger: 0.3 },
+  { id: "generate", label: "Generate", eyebrow: "Generate", title: "Built from tested parts.", body: "Your landing page is planned, assembled from a library of cinematic sections and real-time 3D scenes, and validated before you see it.", tags: ["Cost shown first", "Validated output"], linger: 0.3 },
   { id: "refine", label: "Refine", eyebrow: "Refine", title: "Direct it in conversation.", body: "“Make the scroll more dramatic.” “Black and gold.” Every change is a new version you can preview and restore.", tags: ["Version history", "Live preview"], linger: 0.3 },
   {
     id: "ship",
     label: "Ship",
     eyebrow: "Ship",
-    title: "Download a real website.",
+    title: "Download a real landing page.",
     body: "Export a ZIP or a single HTML file with the 3D runtime included. Host it anywhere — no lock-in.",
     tags: ["ZIP or HTML", "Runs offline"],
     scroll: 1.7,
     linger: 0.4,
-    cta: { primary: { label: "Start a project", href: "/sign-up" }, secondary: { label: "See sample sites", href: "#samples" } },
+    cta: { primary: { label: "Start a project", href: "/sign-up" }, secondary: { label: "See sample pages", href: "#samples" } },
   },
 ];
 
@@ -46,12 +46,12 @@ export default function LandingPage() {
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-20">
           <div>
-            <Badge variant="outline" className="mb-6 rounded-full border-primary/40 px-3 py-1 text-primary">Websites with real 3D and cinematic scrolling</Badge>
+            <Badge variant="outline" className="mb-6 rounded-full border-primary/40 px-3 py-1 text-primary">Landing pages with real 3D and cinematic scrolling</Badge>
             <h1 className="font-display text-balance text-5xl leading-[0.95] sm:text-6xl lg:text-7xl">
               Describe it. Direct it. <em className="text-primary">Ship it in 3D.</em>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              {brand.name} turns a short brief into an immersive website — interactive 3D, scroll-driven camera moves and considered motion — then lets you refine it in chat and download the source.
+              {brand.name} turns a short brief into an immersive landing page — interactive 3D, scroll-driven camera moves and considered motion — then lets you refine it in chat and download the source.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 px-5 text-base">
@@ -60,7 +60,7 @@ export default function LandingPage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
-                <Link href="#samples">See sample sites</Link>
+                <Link href="#samples">See sample pages</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-muted-foreground">No code needed. You see the credit cost before anything is generated.</p>

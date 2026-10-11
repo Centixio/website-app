@@ -158,7 +158,7 @@ export function Workspace({ initial, aiLabel, aiAvailable, generationUnavailable
             if (!saveTimer.current) setConfig(next.config.config);
             setViewedVersionId(next.project.currentVersionId);
             setMobileTab("preview");
-            toast.success(job.kind === "generate" ? "Your site is ready" : "Changes applied");
+            toast.success(job.kind === "generate" ? "Your landing page is ready" : "Changes applied");
           } else if (job.status === "failed") {
             toast.error(job.error ?? "Generation failed", { description: job.cost ? `The ${job.cost} reserved credits were returned.` : undefined, duration: 10000 });
           } else toast.message("Canceled", { description: job.cost ? "Reserved credits were returned." : undefined });

@@ -109,7 +109,7 @@ export function ConfigPanel({ projectId, config, patch, assets, onAssetUploaded,
         <AccordionItem value="direction">
           <AccordionTrigger>Purpose & visual direction</AccordionTrigger>
           <AccordionContent className="space-y-4">
-            <Field label="Website purpose" htmlFor={ids.purpose}>
+            <Field label="Landing page purpose" htmlFor={ids.purpose}>
               <PickSelect id={ids.purpose} value={config.purpose} onChange={(v) => patch((c) => void (c.purpose = v))} options={PURPOSES} />
             </Field>
             <fieldset className="space-y-2">

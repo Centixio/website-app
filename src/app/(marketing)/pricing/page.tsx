@@ -7,7 +7,7 @@ import { CREDIT_COSTS, CREDIT_PACK, CREDIT_POLICY, PLANS } from "@/config/pricin
 export const metadata: Metadata = { title: "Pricing" };
 
 const COSTS: [string, number, string][] = [
-  ["First website generation", CREDIT_COSTS.initialGeneration, "Plans, assembles, validates and saves your site."],
+  ["First landing page generation", CREDIT_COSTS.initialGeneration, "Plans, assembles, validates and saves your site."],
   ["Complex 3D surcharge", CREDIT_COSTS.complex3dSurcharge, "Uploaded models, exploded views, scroll-driven cameras with pinning, or high-quality rendering."],
   ["Targeted chat edit", CREDIT_COSTS.smallEdit, "“Make the scroll more dramatic”, “add a pricing section”."],
   ["Major redesign", CREDIT_COSTS.majorRedesign, "Re-plans most of the site: new direction, new brief, translation."],

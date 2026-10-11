@@ -14,13 +14,13 @@ export default function PrivacyPage() {
       <h2>What we collect</h2>
       <ul>
         <li><strong>Account data:</strong> your email address and authentication details.</li>
-        <li><strong>Project data:</strong> your descriptions, settings, chat messages, uploaded files and the generated website versions.</li>
+        <li><strong>Project data:</strong> your descriptions, settings, chat messages, uploaded files and the generated landing page versions.</li>
         <li><strong>Billing data:</strong> subscription status and credit history. Card details are handled by Stripe and never reach our servers.</li>
         <li><strong>Technical data:</strong> basic logs needed to run, secure and debug the service, including preview error reports.</li>
       </ul>
 
       <h2>How we use it</h2>
-      <p>To provide the service: generating and storing your websites, charging and tracking credits, preventing abuse, and supporting you. We don&apos;t sell your personal data.</p>
+      <p>To provide the service: generating and storing your landing pages, charging and tracking credits, preventing abuse, and supporting you. We don&apos;t sell your personal data.</p>
 
       <h2>Services we rely on</h2>
       <ul>
@@ -28,6 +28,7 @@ export default function PrivacyPage() {
         <li><strong>Stripe</strong> — payments and subscriptions.</li>
         <li><strong>Anthropic</strong> — AI generation. Your descriptions, settings, project text and any reference screenshot are sent to generate and edit designs.</li>
         <li><strong>Google Fonts</strong> — fonts load from Google&apos;s servers in previews and exported sites.</li>
+        <li><strong>Fontshare</strong> — the Centixio site&apos;s own typeface (Satoshi) loads from Indian Type Foundry&apos;s servers.</li>
       </ul>
 
       <h2>Your uploads</h2>

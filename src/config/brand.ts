@@ -9,7 +9,7 @@ export const brand = {
   shortName: "Centixio",
   tagline: "Describe it. Direct it. Ship it in 3D.",
   description:
-    "Centixio turns a plain-English brief into an immersive, scroll-driven 3D website you can refine through chat and download as source code.",
+    "Centixio turns a plain-English brief into an immersive, scroll-driven 3D landing page you can refine through chat and download as source code.",
   supportEmail: "support@centixio.example",
   /** Used for absolute URLs in metadata when NEXT_PUBLIC_APP_URL is unset. */
   fallbackUrl: "http://localhost:3000",

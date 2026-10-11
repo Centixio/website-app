@@ -17,10 +17,10 @@ import { api } from "@/lib/client/api";
 import type { ProjectSummary } from "@/lib/data/types";
 
 const STARTERS = [
-  "A launch site for a luxury perfume called “Nocturne” with warm amber notes, for women 25–45.",
+  "A launch landing page for a luxury perfume called “Nocturne” with warm amber notes, for women 25–45.",
   "A landing page for an AI note-taking app for product teams, with pricing and FAQ.",
-  "A portfolio for an architecture studio that works with timber and natural light.",
-  "A teaser site for a dark-fantasy action game launching next spring.",
+  "A portfolio landing page for an architecture studio that works with timber and natural light.",
+  "A teaser landing page for a dark-fantasy action game launching next spring.",
 ];
 
 function relTime(iso: string) {
@@ -93,7 +93,7 @@ export function ProjectGrid({ initial }: { initial: ProjectSummary[] }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl">Projects</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"}` : "Start by describing a website."}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"}` : "Start by describing a landing page."}</p>
         </div>
         <Button size="lg" onClick={() => setCreating(true)}>
           <Plus /> New project
@@ -135,12 +135,12 @@ export function ProjectGrid({ initial }: { initial: ProjectSummary[] }) {
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="font-display text-3xl font-normal">Describe your website</DialogTitle>
+            <DialogTitle className="font-display text-3xl">Describe your landing page</DialogTitle>
             <DialogDescription>What is it for, who is it for, and how should it feel? You&apos;ll review recommendations and see the cost before anything is generated.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Label htmlFor="brief" className="sr-only">Website description</Label>
-            <Textarea id="brief" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} placeholder="A launch site for…" className="text-base" maxLength={4000} />
+            <Label htmlFor="brief" className="sr-only">Landing page description</Label>
+            <Textarea id="brief" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} placeholder="A landing page for…" className="text-base" maxLength={4000} />
             <div className="flex flex-wrap gap-2" aria-label="Example briefs">
               {STARTERS.map((s) => (
                 <button key={s} type="button" onClick={() => setPrompt(s)} className="rounded-full border border-border px-3 py-1 text-left text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground">

@@ -333,8 +333,8 @@ export function DepthGallery({ items }: { items: DepthItem[] }) {
   if (mode === "static") {
     return (
       <section aria-labelledby="samples-title" id="samples" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6">
-        <h2 id="samples-title" className="font-display text-4xl sm:text-5xl">Sample sites</h2>
-        <p className="mt-3 max-w-2xl text-muted-foreground">Working sites for fictional brands, built with the same section library and 3D runtime your projects use.</p>
+        <h2 id="samples-title" className="font-display text-4xl sm:text-5xl">Sample landing pages</h2>
+        <p className="mt-3 max-w-2xl text-muted-foreground">Working landing pages for fictional brands, built with the same section library and 3D runtime your projects use.</p>
         <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((s) => (
             <li key={s.slug} className="overflow-hidden rounded-2xl border border-border/60">
@@ -354,15 +354,15 @@ export function DepthGallery({ items }: { items: DepthItem[] }) {
         <canvas ref={canvas} className="absolute inset-0 size-full" aria-hidden />
         <div className={`pointer-events-none absolute inset-0 transition-colors duration-500 ${dark ? "text-neutral-900" : "text-white"}`}>
           <div className="absolute left-4 top-20 max-w-sm sm:left-8 sm:top-24">
-            <h2 id="samples-title" className="font-display text-4xl sm:text-5xl">Sample sites</h2>
-            <p className={`mt-2 text-sm ${dark ? "text-neutral-700" : "text-white/70"}`}>Working sites for <strong>fictional brands</strong> — built with the same library your projects use. Scroll to travel through them.</p>
+            <h2 id="samples-title" className="font-display text-4xl sm:text-5xl">Sample landing pages</h2>
+            <p className={`mt-2 text-sm ${dark ? "text-neutral-700" : "text-white/70"}`}>Working landing pages for <strong>fictional brands</strong> — built with the same library your projects use. Scroll to travel through them.</p>
           </div>
           <div className="absolute left-4 top-1/2 hidden -translate-y-1/2 sm:left-8 md:grid md:gap-3">
             <p className="font-mono text-[10px] tracking-[0.12em]">{String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</p>
             <span className="size-[18px] rounded-full ring-1 ring-white/15" style={{ background: it.palette.accent }} />
           </div>
           <article aria-live="polite" className="pointer-events-auto absolute bottom-6 left-4 right-4 font-mono text-[11px] uppercase tracking-[0.08em] sm:bottom-auto sm:left-auto sm:right-10 sm:top-1/2 sm:w-[min(30vw,360px)] sm:-translate-y-1/2">
-            <p className="mb-1 text-base normal-case tracking-normal" style={{ fontFamily: "var(--font-display-serif)" }}>{it.name}</p>
+            <p className="mb-1 text-base font-medium normal-case tracking-normal">{it.name}</p>
             <p className="mb-3 opacity-75">{it.direction} · Sample project</p>
             <dl className="grid gap-1">
               <div className="grid grid-cols-[3.5rem_1fr] gap-3"><dt className="opacity-60">CMYK</dt><dd>{cmyk.c}, {cmyk.m}, {cmyk.y}, {cmyk.k}</dd></div>

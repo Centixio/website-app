@@ -9,7 +9,7 @@ export const POST = withSession<{ projectId: string }>(async ({ req, session, pa
   const input = await body(
     req,
     z.object({
-      prompt: z.string().trim().min(LIMITS.prompt.minChars, `Describe your website in at least ${LIMITS.prompt.minChars} characters.`).max(LIMITS.prompt.maxChars),
+      prompt: z.string().trim().min(LIMITS.prompt.minChars, `Describe your landing page in at least ${LIMITS.prompt.minChars} characters.`).max(LIMITS.prompt.maxChars),
       idempotencyKey: IdempotencyKey,
       expectedCost: z.number().int().min(0),
     }),

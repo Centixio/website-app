@@ -1,13 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
-const ui = Geist({ variable: "--font-ui", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const display = Instrument_Serif({ variable: "--font-display-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
+
+/**
+ * Satoshi (Indian Type Foundry, ITF Free Font License) served by the Fontshare API.
+ * The license allows it on our own site but not redistribution (this repo is public)
+ * nor offering it to users' generated pages — see src/lib/catalog/fonts.ts.
+ */
+const SATOSHI_CSS = "https://api.fontshare.com/v2/css?f[]=satoshi@1,2&display=swap";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? brand.fallbackUrl),
@@ -22,7 +27,12 @@ export const viewport: Viewport = { themeColor: brand.colors.ink, colorScheme: "
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`dark ${ui.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en" className={`dark ${mono.variable} h-full antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
+        <link rel="stylesheet" href={SATOSHI_CSS} />
+      </head>
       <body className="min-h-full bg-background text-foreground">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster position="bottom-right" />
