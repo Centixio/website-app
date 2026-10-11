@@ -428,6 +428,30 @@ export class SupabaseWorkerStore implements WorkerStore {
     return data as Record<string, number>;
   }
 
+  async createGeneratedImage(job: Job, image: { name: string; mimeType: string; bytes: Uint8Array; meta: Asset["meta"] }) {
+    const ext = image.mimeType === "image/webp" ? "webp" : image.mimeType === "image/jpeg" ? "jpg" : "png";
+    const path = `${job.userId}/${job.projectId}/${crypto.randomUUID()}.${ext}`;
+    const up = await this.admin.storage.from(BUCKET).upload(path, image.bytes, { contentType: image.mimeType, upsert: false });
+    if (up.error) throw new Error(`Upload failed: ${up.error.message}`);
+    const sha256 = crypto.createHash("sha256").update(image.bytes).digest("hex");
+    const { data, error } = await this.admin
+      .from("assets")
+      .insert({ user_id: job.userId, project_id: job.projectId, kind: "image", name: image.name, storage_path: path, mime_type: image.mimeType, size_bytes: image.bytes.byteLength, sha256, meta: image.meta })
+      .select("*")
+      .single();
+    if (error) {
+      await this.admin.storage.from(BUCKET).remove([path]);
+      mapError(error);
+    }
+    return mapAsset(data);
+  }
+
+  async refundUnused(job: Job, amount: number, description: string) {
+    if (amount <= 0) return;
+    const { error } = await this.admin.rpc("grant_credits", { p_user: job.userId, p_source: "refund", p_amount: amount, p_expires: null, p_key: `unused:${job.id}`, p_description: description });
+    if (error) mapError(error);
+  }
+
   async loadJobContext(job: Job) {
     const [assets, base] = await Promise.all([
       this.admin.from("assets").select("*").eq("project_id", job.projectId).eq("user_id", job.userId),

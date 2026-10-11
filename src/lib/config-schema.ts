@@ -98,6 +98,8 @@ export const BrandConfigSchema = z.object({
   sectionsMode: z.enum(["auto", "custom"]),
   imageAssetIds: z.array(assetId).max(24),
   referenceAssetId: assetId.nullable(),
+  /** "ai": generate subject-matched imagery when an image provider is configured. */
+  imagery: z.enum(["ai", "off"]).default("ai"),
 });
 
 export const OutputConfigSchema = z.object({
@@ -183,6 +185,7 @@ export const DEFAULT_CONFIG: WebsiteConfig = {
     sectionsMode: "auto",
     imageAssetIds: [],
     referenceAssetId: null,
+    imagery: "ai",
   },
   output: {
     format: "zip",

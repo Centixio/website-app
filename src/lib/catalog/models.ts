@@ -201,6 +201,24 @@ export function getModel(id: string | null | undefined): CatalogModel | undefine
   return MODELS.find((m) => m.id === id);
 }
 
+/** Purposes where an abstract object is an honest fit (the brand itself is digital or conceptual). */
+const ABSTRACT_FRIENDLY_PURPOSES = new Set(["saas", "app", "fintech", "agency", "gaming", "event"]);
+
+/**
+ * Whether a catalog model actually represents the brief. Product models need a
+ * tag in the brief ("perfume" → perfume bottle); abstract models also fit
+ * digital/conceptual purposes. Used so an unrelated object (an orb for a car)
+ * is never shown as the subject.
+ */
+export function modelFitsBrief(modelId: string, text: string, purpose: string): boolean {
+  const model = getModel(modelId);
+  if (!model) return false;
+  const haystack = ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const hit = model.tags.some((t) => new RegExp(`\\b${t.replace(/[^a-z0-9 ]/g, "")}(s|es)?\\b`).test(haystack));
+  if (hit) return true;
+  return model.category === "abstract" && ABSTRACT_FRIENDLY_PURPOSES.has(purpose);
+}
+
 export const MATERIAL_PRESETS = [
   { id: "auto", name: "Auto (model default)" },
   { id: "glass", name: "Glass" },

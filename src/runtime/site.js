@@ -151,7 +151,9 @@ class Stage {
     const scene = new THREE.Scene();
     this.scene = scene;
     const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    // The default 256px environment shows as blocky reflections on mirror-like materials.
+    const envSize = q === "low" || env.mobile ? 512 : 1024;
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04, 0.1, 100, { size: envSize }).texture;
     pmrem.dispose();
     const lighting = this.el.dataset.lighting || cfg.scene.lighting;
     scene.environmentIntensity = addLighting(scene, lighting, cfg.palette);
@@ -426,6 +428,14 @@ function initStages(cfg, env) {
 
 // ---------------------------------------------------------------- motion
 
+/** Crossfades a story frame to step i's image (steps without an image keep the current one). */
+function showStoryImage(section, i) {
+  const imgs = section.querySelectorAll("[data-cx-step-img]");
+  const next = section.querySelector(`[data-cx-step-img="${i}"]`);
+  if (!next) return;
+  imgs.forEach((img) => img.classList.toggle("is-active", img === next));
+}
+
 function splitWords(el) {
   if (el.dataset.cxSplit) return el.querySelectorAll(".cx-w > span");
   el.dataset.cxSplit = "1";
@@ -506,6 +516,15 @@ function initMotion(cfg, env) {
     });
   }
 
+  // Cinematic image hero: the subject pushes in and drifts while the copy lifts away.
+  gsap.utils.toArray("[data-cx-hero-image]").forEach((hero) => {
+    const bg = hero.querySelector(".cx-hero-bg");
+    const copy = hero.querySelector(".cx-hero-copy");
+    const st = { trigger: hero, start: "top top", end: "bottom top", scrub: true };
+    if (bg) gsap.to(bg, { yPercent: 16 * k, scale: 1 + 0.1 * k, ease: "none", scrollTrigger: st });
+    if (copy) gsap.to(copy, { yPercent: -22 * k, opacity: 0, ease: "none", scrollTrigger: { ...st, end: "bottom 25%" } });
+  });
+
   // Kinetic typography marquee
   gsap.utils.toArray(".cx-marquee-track").forEach((track) => {
     const tween = gsap.to(track, { xPercent: -50, ease: "none", repeat: -1, duration: 34 / k });
@@ -519,10 +538,23 @@ function initMotion(cfg, env) {
       const steps = section.querySelectorAll("[data-cx-step]");
       if (!steps.length) return;
       section.classList.add("cx-pinning");
-      const setActive = (i) => steps.forEach((s, j) => s.classList.toggle("is-active", j === i));
+      const setActive = (i) => {
+        steps.forEach((s, j) => s.classList.toggle("is-active", j === i));
+        showStoryImage(section, i);
+      };
       setActive(0);
       ST.create({ trigger: section, start: "top top", end: `+=${steps.length * 70}%`, pin: true, scrub: true, onUpdate: (self) => setActive(Math.min(steps.length - 1, Math.floor(self.progress * steps.length))) });
       return () => section.classList.remove("cx-pinning");
+    });
+  });
+
+  // Image-led stories that aren't pinned still swap their frame as each step reaches the middle.
+  mm.add("(min-width: 768px)", () => {
+    gsap.utils.toArray("[data-cx-story-media]").forEach((section) => {
+      if (m.pinned && section.hasAttribute("data-cx-pin-story")) return;
+      section.querySelectorAll("[data-cx-step]").forEach((step, i) => {
+        ST.create({ trigger: step, start: "top 60%", end: "bottom 40%", onToggle: (self) => self.isActive && showStoryImage(section, i) });
+      });
     });
   });
 

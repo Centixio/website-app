@@ -101,6 +101,8 @@ export interface JobInput {
   config: WebsiteConfig;
   baseVersionId?: string | null;
   messageId?: string | null;
+  /** Max AI images this job may create (paid for in `cost`; unused ones are refunded). */
+  imageBudget?: number;
 }
 
 export interface CreditSummary {
@@ -197,6 +199,10 @@ export interface WorkerStore {
   completeJob(jobId: string, workerId: string, version: NewVersion, message: string, syncConfig: boolean): Promise<string | null>;
   failJob(jobId: string, workerId: string, error: string, retryable: boolean): Promise<string>;
   sweep(timeoutSeconds: number): Promise<Record<string, number>>;
+  /** Store an AI-generated image as an asset of the job's project. */
+  createGeneratedImage(job: Job, image: { name: string; mimeType: string; bytes: Uint8Array; meta: Asset["meta"] }): Promise<Asset>;
+  /** Return credits the job reserved but did not use (e.g. images that weren't generated). Idempotent per job. */
+  refundUnused(job: Job, amount: number, description: string): Promise<void>;
   /** Load what a worker needs, bypassing RLS (the job row identifies the owner). */
   loadJobContext(job: Job): Promise<{ assets: Asset[]; baseVersion: Version | null; readAsset(a: Asset): Promise<Uint8Array> }>;
 }

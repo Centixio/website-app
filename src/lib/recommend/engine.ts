@@ -12,7 +12,7 @@ export interface AssetSummary {
   kind: "image" | "logo" | "model" | "reference" | "favicon" | "social";
   name: string;
   sizeBytes: number;
-  meta: { separable?: boolean; meshCount?: number; dominantColor?: string; width?: number; height?: number };
+  meta: { separable?: boolean; meshCount?: number; dominantColor?: string; width?: number; height?: number; generated?: boolean; prompt?: string };
 }
 
 export interface RecommendationInput {

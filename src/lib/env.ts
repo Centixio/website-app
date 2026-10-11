@@ -26,6 +26,10 @@ export const env = {
   anthropicModel: () => read("ANTHROPIC_MODEL") ?? "claude-opus-5-5",
   anthropicEffort: () =>
     (read("ANTHROPIC_EFFORT") ?? "medium") as "low" | "medium" | "high" | "xhigh" | "max",
+  /** AI image generation (OpenAI Images API). Without a key, pages use uploads and typography only. */
+  openaiApiKey: () => read("OPENAI_API_KEY"),
+  openaiImageModel: () => read("OPENAI_IMAGE_MODEL") ?? "gpt-image-2",
+  openaiImageQuality: () => (read("OPENAI_IMAGE_QUALITY") ?? "medium") as "low" | "medium" | "high",
   cronSecret: () => read("CRON_SECRET"),
   demoSecret: () => read("DEMO_SESSION_SECRET"),
   /** Explicit opt-in so demo mode can never activate silently in production. */

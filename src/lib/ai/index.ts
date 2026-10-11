@@ -3,6 +3,7 @@ import { appMode, env, isAIConfigured } from "@/lib/env";
 import type { AIProvider } from "./provider";
 import { AnthropicProvider } from "./anthropic";
 import { RulesProvider } from "./rules-provider";
+import { imageProviderConfigured } from "./images";
 
 export interface ProviderAvailability {
   provider: AIProvider | null;
@@ -28,6 +29,11 @@ export function getProvider(): ProviderAvailability {
     return { provider: new RulesProvider(), reason: null };
   }
   return { provider: null, reason: "AI generation is not configured on this server. Set ANTHROPIC_API_KEY (and AI_PROVIDER=anthropic)." };
+}
+
+/** AI imagery needs both an image provider and an AI planner to write the image briefs. */
+export function aiImagesAvailable(): boolean {
+  return imageProviderConfigured() && Boolean(getProvider().provider?.isAI);
 }
 
 export type { AIProvider } from "./provider";

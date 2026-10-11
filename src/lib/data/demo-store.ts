@@ -544,6 +544,26 @@ export class DemoWorkerStore implements WorkerStore {
       return { jobs_failed: jobsFailed, reservations_released: released, grants_expired: L.sweepExpired(db.credits) };
     });
   }
+  createGeneratedImage(job: Job, image: { name: string; mimeType: string; bytes: Uint8Array; meta: Asset["meta"] }) {
+    return tx((db) => {
+      const ext = image.mimeType === "image/webp" ? "webp" : image.mimeType === "image/jpeg" ? "jpg" : "png";
+      const storagePath = `${job.userId}/${job.projectId}/${crypto.randomUUID()}.${ext}`;
+      const file = path.join(DIR, "assets", storagePath);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, image.bytes);
+      const sha256 = crypto.createHash("sha256").update(image.bytes).digest("hex");
+      const a: AssetRow = { id: crypto.randomUUID(), userId: job.userId, projectId: job.projectId, kind: "image", name: image.name, mimeType: image.mimeType, sizeBytes: image.bytes.byteLength, storagePath, sha256, meta: image.meta, createdAt: now() };
+      db.assets.push(a);
+      return a;
+    });
+  }
+  async refundUnused(job: Job, amount: number, description: string) {
+    if (amount <= 0) return;
+    await tx((db) => {
+      if (db.credits.grants.some((g) => g.key === `unused:${job.id}`)) return;
+      L.grantCredits(db.credits, job.userId, "refund", amount, null, `unused:${job.id}`, description);
+    });
+  }
   async loadJobContext(job: Job) {
     return read((db) => {
       const assets = db.assets.filter((a) => a.projectId === job.projectId && a.userId === job.userId);

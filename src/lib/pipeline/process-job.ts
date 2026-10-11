@@ -1,6 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { LIMITS } from "@/config/limits";
+import { CREDIT_COSTS } from "@/config/pricing";
+import { getImageProvider } from "@/lib/ai/images";
 import { WebsiteConfigSchema, type WebsiteConfig } from "@/lib/config-schema";
 import { getProvider } from "@/lib/ai";
 import { ProviderError, type ReferenceImage } from "@/lib/ai/provider";
@@ -11,6 +13,7 @@ import type { AIPlan, DesignSpec } from "@/lib/spec/schema";
 import type { AssetSummary } from "@/lib/recommend/engine";
 import { StoreError, type Job, type WorkerStore } from "@/lib/data/types";
 import { referencedAssetIds, renderPortable } from "./render";
+import { materializeImagery, stripGeneratedRefs } from "./imagery";
 
 const JobInputSchema = z.object({
   prompt: z.string().min(1).max(LIMITS.prompt.maxChars),
@@ -18,6 +21,7 @@ const JobInputSchema = z.object({
   editScope: z.enum(["small", "major"]).optional(),
   config: WebsiteConfigSchema,
   baseVersionId: z.string().uuid().nullable().optional(),
+  imageBudget: z.number().int().min(0).max(8).optional(),
 });
 
 class CanceledError extends Error {}
@@ -56,24 +60,43 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
     if (!provider) throw new ProviderError(reason ?? "No generation provider", false, "unavailable");
 
     const ctx = await worker.loadJobContext(job);
-    const assets: AssetSummary[] = ctx.assets.map((a) => ({ id: a.id, kind: a.kind, name: a.name, sizeBytes: a.sizeBytes, meta: a.meta }));
+    const toSummary = (a: (typeof ctx.assets)[number]): AssetSummary => ({ id: a.id, kind: a.kind, name: a.name, sizeBytes: a.sizeBytes, meta: a.meta });
+    const assets: AssetSummary[] = ctx.assets.map(toSummary);
+    const imageBudget = provider.isAI ? (input.imageBudget ?? 0) : 0;
     const reference = await loadReference(config, ctx);
 
     let plan: AIPlan;
     let prefer: "config" | "plan" = "config";
     if (job.kind === "generate") {
       const baseline = createRulesPlan(input.prompt, config, assets);
-      plan = provider.isAI ? await provider.plan({ prompt: input.prompt, config, assets, baseline, reference }, abort.signal) : baseline;
+      plan = provider.isAI ? await provider.plan({ prompt: input.prompt, config, assets, baseline, reference, imageBudget }, abort.signal) : baseline;
     } else {
       if (!ctx.baseVersion) throw new ProviderError("The version to edit no longer exists.", false, "bad_request");
       const current = specToPlan(ctx.baseVersion.spec);
       if (job.kind === "repair") {
         plan = current;
       } else {
-        plan = await provider.edit({ instruction: input.instruction ?? "", scope: input.editScope ?? "small", current, prompt: input.prompt, config, assets, reference }, abort.signal);
+        plan = await provider.edit({ instruction: input.instruction ?? "", scope: input.editScope ?? "small", current, prompt: input.prompt, config, assets, reference, imageBudget }, abort.signal);
         prefer = "plan";
       }
     }
+    if (canceled) throw new CanceledError();
+
+    // Subject imagery: generate what the plan art-directed, within the paid budget.
+    let imagesMade = 0;
+    const imageProvider = imageBudget > 0 ? getImageProvider() : null;
+    if (imageProvider && plan.imagery?.length) {
+      await setStage("creating imagery");
+      const imagery = await materializeImagery({ plan, budget: imageBudget, job, worker, provider: imageProvider, signal: abort.signal });
+      plan = imagery.plan;
+      imagesMade = imagery.created.length;
+      ctx.assets.push(...imagery.created);
+      assets.push(...imagery.created.map(toSummary));
+      if (imagery.failed.length) console.warn("[job] some images failed", job.id, imagery.failed);
+    } else {
+      plan = stripGeneratedRefs(plan);
+    }
+    const unusedImageCredits = Math.max(0, imageBudget - imagesMade) * CREDIT_COSTS.generatedImage;
     if (canceled) throw new CanceledError();
 
     await setStage("building");
@@ -95,8 +118,9 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
     }
 
     await setStage("saving");
-    const charge = job.cost;
-    const message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge);
+    // The reservation settles in full; images that weren't made come back as a separate, idempotent refund.
+    const charge = job.cost - unusedImageCredits;
+    const message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge, imagesMade, unusedImageCredits);
     await worker.completeJob(
       job.id,
       workerId,
@@ -115,6 +139,11 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
       message,
       prefer === "plan",
     );
+    if (unusedImageCredits > 0) {
+      await worker
+        .refundUnused(job, unusedImageCredits, `Refund: ${unusedImageCredits / CREDIT_COSTS.generatedImage} reserved image(s) not generated`)
+        .catch((e) => console.error("[job] refund failed", job.id, e));
+    }
   } catch (err) {
     if (err instanceof StoreError && err.code === "job_not_owned") return; // lease lost; another worker or the sweeper owns it now
     if (err instanceof CanceledError || canceled) {
@@ -146,13 +175,14 @@ async function loadReference(config: WebsiteConfig, ctx: Awaited<ReturnType<Work
   return { mediaType, base64: Buffer.from(bytes).toString("base64") };
 }
 
-function composeMessage(job: Job, spec: DesignSpec, fixes: string[], providerLabel: string, isAI: boolean, charge: number): string {
+function composeMessage(job: Job, spec: DesignSpec, fixes: string[], providerLabel: string, isAI: boolean, charge: number, imagesMade: number, refunded: number): string {
   const lines: string[] = [];
-  if (job.kind === "generate") lines.push(`Your site is ready: a ${spec.direction.replace(/-/g, " ")} design with ${spec.sections.length} sections${spec.scene.enabled ? " and an interactive 3D scene" : ""}.`);
+  const extras = [spec.scene.enabled ? "an interactive 3D scene" : "", imagesMade ? `${imagesMade} custom image${imagesMade === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
+  if (job.kind === "generate") lines.push(`Your landing page is ready: a ${spec.direction.replace(/-/g, " ")} design with ${spec.sections.length} sections${extras ? ` and ${extras}` : ""}.`);
   else if (job.kind === "repair") lines.push("I rebuilt the site to fix the preview errors.");
-  else lines.push("Done — I've updated the site.");
+  else lines.push(imagesMade ? `Done — I've redesigned the page with ${imagesMade} new image${imagesMade === 1 ? "" : "s"}.` : "Done — I've updated the page.");
   for (const n of spec.notes.slice(0, 4)) lines.push(`• ${n}`);
   for (const f of fixes.slice(0, 3)) lines.push(`• ${f}`);
-  lines.push(`${isAI ? `Generated with ${providerLabel}` : providerLabel}. ${charge > 0 ? `${charge} credits charged.` : "No credits charged."}`);
+  lines.push(`${isAI ? `Generated with ${providerLabel}` : providerLabel}. ${charge > 0 ? `${charge} credits charged${refunded ? ` (${refunded} reserved for images refunded)` : ""}.` : "No credits charged."}`);
   return lines.join("\n");
 }

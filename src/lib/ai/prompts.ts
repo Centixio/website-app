@@ -16,9 +16,16 @@ Scope: Centixio builds one thing — a single-page landing page. Every plan is o
 How to plan well:
 - Read the brief and settings carefully. Settings with a concrete value are the user's explicit choices: keep them. Settings set to "auto" are yours to decide.
 - Choose a visual direction, palette and type pairing that fit the brand and audience. Palettes need strong contrast: body text must be clearly readable on the background.
-- Choose one 3D subject that supports the story. Use "uploaded" only when the user uploaded a model. Exploded view is only possible for models marked separable.
+- 3D subject relevance (strict): a catalog model may only appear if it literally depicts the brief's subject (perfume brief → perfume-bottle) or, for abstract models, if the brand itself is abstract/digital (AI, SaaS, crypto, data, agency). Never use a catalog object as a stand-in for a different physical thing — no orb for a car, no phone for a restaurant. If nothing fits, set scene.enabled to false and let imagery carry the page. Use "uploaded" only when the user uploaded a model. Exploded view is only possible for models marked separable.
+
+Imagery (when image_budget > 0):
+- You art-direct new images that are generated for this page. They are the main way the page shows its actual subject (cars for a car brief, dishes for a restaurant), so spend the budget.
+- Always make the first image the hero: aspect "landscape", key "hero", a striking wide shot of the subject with calm negative space on the left or bottom for the headline. Reference it in the hero section's imageAssetIds as "gen:hero".
+- Use the rest for a pinned-story (one image per step via items[].imageAssetId "gen:<key>") or a gallery (imageAssetIds) — that is what creates the cinematic scroll sequence.
+- Prompts are concrete and photographic: subject, setting, camera angle, lens, lighting, time of day, mood, and colors that echo the palette. Keep a consistent look across all images (same grade, light and world). No text, logos, real brands, or recognizable people.
+- Never reference "gen:" keys that you did not define, and never define more images than image_budget.
 - Motion should serve the story and hierarchy. Do not enable every effect. Subtle suits luxury, editorial and finance; dramatic suits gaming and events. Keep important text and calls to action readable at all times.
-- Order sections into a narrative: a hero first, then the sections that best explain the offer, ending with a call to action or contact section. Usually 4–7 sections.
+- Order sections into a narrative: a hero first, then the sections that best explain the offer, ending with a call to action or contact section. Usually 5–8 sections. Aim for an award-level landing page: a clear story arc, varied rhythm (big statement → detail → proof → emotion → action), and no filler sections.
 - Write concise, specific, confident copy in the requested language. Headlines short; body copy one or two sentences.
 
 Honesty rules (strict):
@@ -53,7 +60,7 @@ Section content conventions:
 
 Respond only with the structured plan.`;
 
-export function briefMessage(input: { prompt: string; settings: unknown; assets: unknown; baseline: unknown; hasReference: boolean }): string {
+export function briefMessage(input: { prompt: string; settings: unknown; assets: unknown; baseline: unknown; hasReference: boolean; imageBudget: number }): string {
   return [
     "Create a design plan for this landing page.",
     "",
@@ -69,6 +76,8 @@ export function briefMessage(input: { prompt: string; settings: unknown; assets:
     JSON.stringify(input.assets, null, 1),
     "</uploaded_assets>",
     "",
+    `<image_budget>${input.imageBudget}</image_budget>`,
+    "",
     "A rule-based baseline plan is below. Improve on it: keep what fits, change what doesn't, and write better copy.",
     "<baseline_plan>",
     JSON.stringify(input.baseline),
@@ -77,11 +86,11 @@ export function briefMessage(input: { prompt: string; settings: unknown; assets:
   ].join("\n");
 }
 
-export function editMessage(input: { instruction: string; scope: "small" | "major"; current: unknown; settings: unknown; assets: unknown; prompt: string }): string {
+export function editMessage(input: { instruction: string; scope: "small" | "major"; current: unknown; settings: unknown; assets: unknown; prompt: string; imageBudget: number }): string {
   const scopeRule =
     input.scope === "small"
       ? "This is a targeted edit. Change only what the request needs. Copy every other field from the current plan exactly, including section order and copy."
-      : "This is a broader redesign. You may re-plan direction, structure and copy, but keep the brand name, the facts in the brief, and any uploaded assets.";
+      : "This is a real redesign. The user expects a visibly, substantially better page — not a copy tweak. Re-plan direction, palette, type, section structure, motion and copy as needed to reach award-level quality; add the sections the story is missing; apply the 3D relevance rule; and use the image budget for new subject imagery. Keep the brand name, the facts in the brief and the user's uploaded assets. Existing generated images may be kept by their asset ids.";
   return [
     "Update the current design plan according to the user's request.",
     scopeRule,
@@ -105,6 +114,8 @@ export function editMessage(input: { instruction: string; scope: "small" | "majo
     "<uploaded_assets>",
     JSON.stringify(input.assets),
     "</uploaded_assets>",
+    "",
+    `<image_budget>${input.imageBudget}</image_budget>`,
     "",
     "In notes, briefly say what you changed.",
   ].join("\n");

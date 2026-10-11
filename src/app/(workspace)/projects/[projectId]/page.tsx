@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth/session";
-import { getProvider } from "@/lib/ai";
+import { aiImagesAvailable, getProvider } from "@/lib/ai";
 import { diffConfig } from "@/lib/credits/estimate";
 import { Uuid } from "@/lib/api/http";
 import { Workspace } from "@/components/workspace/workspace";
@@ -40,6 +40,7 @@ export default async function WorkspacePage(props: PageProps<"/projects/[project
         }}
         aiLabel={aiLabel}
         aiAvailable={Boolean(provider?.isAI)}
+        aiImages={aiImagesAvailable()}
         generationUnavailable={reason}
         demo={user.mode === "demo"}
       />

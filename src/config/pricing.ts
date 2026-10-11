@@ -57,6 +57,9 @@ export const CREDIT_PACK = {
 };
 
 /** Credit cost of each chargeable action. */
+/** How many images a generation / major redesign may create when AI imagery is on. */
+export const IMAGE_BUDGET = { generation: 4, majorEdit: 3 } as const;
+
 export const CREDIT_COSTS = {
   /** First generation of a website for a project. */
   initialGeneration: 10,
@@ -66,8 +69,8 @@ export const CREDIT_COSTS = {
   smallEdit: 2,
   /** Broad changes that re-plan most of the site. */
   majorRedesign: 8,
-  /** Optional AI-generated media per image (disabled unless a media provider is configured). */
-  generatedMediaPerImage: 4,
+  /** Each AI-generated image (only when an image provider is configured). Unused images are refunded. */
+  generatedImage: 1,
   /** Applying settings that only re-assemble the existing design (no AI call). */
   reassemble: 0,
   /** Restoring a previous version. */

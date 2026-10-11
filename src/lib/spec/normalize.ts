@@ -2,7 +2,7 @@ import { DesignSpecSchema, type AIPlan, type DesignSpec, type Palette, type Sect
 import { resolveConflicts, type SectionType, type WebsiteConfig } from "@/lib/config-schema";
 import { getDirection } from "@/lib/catalog/directions";
 import { FONT_PAIRINGS, isKnownFont } from "@/lib/catalog/fonts";
-import { getModel, LIGHTING_PRESETS, MATERIAL_PRESETS } from "@/lib/catalog/models";
+import { getModel, LIGHTING_PRESETS, MATERIAL_PRESETS, modelFitsBrief } from "@/lib/catalog/models";
 import { resolveAutoConfig, resolveProfile, type AssetSummary } from "@/lib/recommend/engine";
 import { contrastRatio, luminance, mix, onColor, slugify } from "@/lib/assembler/html";
 import { sectionContent } from "@/lib/ai/rules-planner";
@@ -153,7 +153,21 @@ export function normalizePlan(input: NormalizeInput): { spec: DesignSpec; fixes:
   const separable = useUpload ? Boolean(uploaded?.meta.separable) : Boolean(getModel(modelId)?.separable);
   const { config: c, notes: conflictNotes } = resolveConflicts(resolved, { modelSeparable: separable });
   fixes.push(...conflictNotes);
-  const sceneEnabled = c.scene.enabled;
+  // 3D is on by default, which is not a request for an unrelated object. Unless the user chose the
+  // subject (catalog model or upload), the planner may turn 3D off, and a model that doesn't depict
+  // the brief is always dropped.
+  const userChoseSubject = useUpload || Boolean(config.scene.modelId) || !["auto", "abstract"].includes(config.scene.subject);
+  let sceneEnabled = c.scene.enabled;
+  if (sceneEnabled && !userChoseSubject) {
+    const briefText = [prompt, config.brand.description, config.brand.brandName, config.brand.audience].join(" ");
+    const purpose = config.purpose !== "auto" ? config.purpose : profile.industry;
+    if (plan.scene.enabled === false) {
+      sceneEnabled = false;
+    } else if (!modelFitsBrief(modelId, briefText, purpose)) {
+      sceneEnabled = false;
+      fixes.push(`Turned off 3D: the "${getModel(modelId)?.name ?? modelId}" object doesn't depict this brief. Upload a GLB model of your product to feature it in 3D.`);
+    }
+  }
   const placement = !auto(config.scene.placement) ? (config.scene.placement as DesignSpec["scene"]["placement"]) : plan.scene.placement ?? profile.placement;
   const material = !auto(config.scene.material) ? config.scene.material : MATERIAL_PRESETS.some((m) => m.id === plan.scene.material) ? plan.scene.material : "auto";
   const lighting = !auto(config.scene.lighting) ? config.scene.lighting : LIGHTING_PRESETS.some((l) => l.id === plan.scene.lighting && l.id !== "auto") ? plan.scene.lighting : direction.defaultLighting;

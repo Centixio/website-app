@@ -67,12 +67,12 @@ export class AnthropicProvider implements AIProvider {
   }
 
   plan(req: PlanRequest, signal?: AbortSignal): Promise<AIPlan> {
-    const text = briefMessage({ prompt: req.prompt, settings: req.config, assets: req.assets.map(assetForPrompt), baseline: req.baseline, hasReference: Boolean(req.reference) });
+    const text = briefMessage({ prompt: req.prompt, settings: req.config, assets: req.assets.map(assetForPrompt), baseline: req.baseline, hasReference: Boolean(req.reference), imageBudget: req.imageBudget });
     return this.call(AIPlanSchema, text, req.reference, 16000, signal);
   }
 
   edit(req: EditRequest, signal?: AbortSignal): Promise<AIPlan> {
-    const text = editMessage({ instruction: req.instruction, scope: req.scope, current: req.current, settings: req.config, assets: req.assets.map(assetForPrompt), prompt: req.prompt });
+    const text = editMessage({ instruction: req.instruction, scope: req.scope, current: req.current, settings: req.config, assets: req.assets.map(assetForPrompt), prompt: req.prompt, imageBudget: req.imageBudget });
     return this.call(AIPlanSchema, text, req.reference, 16000, signal);
   }
 

@@ -20,6 +20,8 @@ export interface PlanRequest {
   /** Rule-based starting point the model may improve on. */
   baseline: AIPlan;
   reference?: ReferenceImage | null;
+  /** How many new images the plan may request (0 = none). */
+  imageBudget: number;
 }
 
 export interface EditRequest {
@@ -30,6 +32,7 @@ export interface EditRequest {
   config: WebsiteConfig;
   assets: AssetSummary[];
   reference?: ReferenceImage | null;
+  imageBudget: number;
 }
 
 export interface RepairRequest {

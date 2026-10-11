@@ -1,4 +1,4 @@
-import { CREDIT_COSTS } from "@/config/pricing";
+import { CREDIT_COSTS, IMAGE_BUDGET } from "@/config/pricing";
 import type { WebsiteConfig } from "@/lib/config-schema";
 
 export interface CostLine {
@@ -25,12 +25,24 @@ export function isComplex3d(config: WebsiteConfig): { complex: boolean; reasons:
   return { complex: reasons.length > 0, reasons };
 }
 
-export function estimateGeneration(config: WebsiteConfig): CostEstimate {
-  const lines: CostLine[] = [{ label: "Website generation", credits: CREDIT_COSTS.initialGeneration }];
+/** Whether the server can generate images (passed to the client so its estimate matches the charge). */
+export interface EstimateOptions {
+  aiImages: boolean;
+}
+
+/** Number of images a generation will create: none when imagery is off or no provider is configured. */
+export function generationImageBudget(config: WebsiteConfig, opts: EstimateOptions): number {
+  return opts.aiImages && config.brand.imagery !== "off" ? IMAGE_BUDGET.generation : 0;
+}
+
+export function estimateGeneration(config: WebsiteConfig, opts: EstimateOptions): CostEstimate {
+  const lines: CostLine[] = [{ label: "Landing page generation", credits: CREDIT_COSTS.initialGeneration }];
   const c3d = isComplex3d(config);
   if (c3d.complex) lines.push({ label: `Complex 3D (${c3d.reasons.join(", ")})`, credits: CREDIT_COSTS.complex3dSurcharge });
+  const images = generationImageBudget(config, opts);
+  if (images) lines.push({ label: `Up to ${images} AI images (unused ones refunded)`, credits: images * CREDIT_COSTS.generatedImage });
   const total = lines.reduce((n, l) => n + l.credits, 0);
-  return { action: "generate", total, lines, explanation: "Plans the design, assembles the site, validates it and saves a new version." };
+  return { action: "generate", total, lines, explanation: "Plans the design, creates imagery, assembles the page, validates it and saves a new version." };
 }
 
 const MAJOR_PATTERNS = [
@@ -39,21 +51,37 @@ const MAJOR_PATTERNS = [
   /\b(change|switch) (the )?(entire|whole|overall)\b/i,
   /\b(translate|in (spanish|french|german|italian|portuguese|japanese|chinese|korean|dutch))\b/i,
   /\b(rewrite|re-write) (all|every|the whole|everything)\b/i,
+  /\b(too (simple|plain|basic|boring|bland|generic)|looks? (cheap|bad|boring|generic|basic)|not (good|great|nice|premium) enough|i (don'?t|do not) like (it|this))\b/i,
+  // Asking for imagery of the subject means new visuals.
+  /\b(images?|photos?|pictures?|imagery|visuals?|photography)\b/i,
 ];
+
+/** Open-ended quality requests ("improve it 10x") need a real re-plan, not a copy tweak… */
+const QUALITY = /\b(improve|upgrade|elevate|level up|enhance|polish|better|premium|top[- ]tier|world[- ]class|award|stunning|amazing|wow|impressive|\d+x)\b/i;
+/** …unless they name a specific element ("improve the headline"). */
+const TARGETED = /\b(heading|headline|title|button|text|copy|wording|font|colou?rs?|faq|price|pricing|email|link|cta|logo|footer|nav)\b/i;
 
 /** Deterministic classification so the cost shown before sending is the cost charged. */
 export function classifyEdit(message: string): "small" | "major" {
-  return MAJOR_PATTERNS.some((re) => re.test(message)) ? "major" : "small";
+  if (MAJOR_PATTERNS.some((re) => re.test(message))) return "major";
+  return QUALITY.test(message) && !TARGETED.test(message) ? "major" : "small";
 }
 
-export function estimateEdit(message: string): CostEstimate {
+export function editImageBudget(message: string, opts: EstimateOptions): number {
+  return opts.aiImages && classifyEdit(message) === "major" ? IMAGE_BUDGET.majorEdit : 0;
+}
+
+export function estimateEdit(message: string, opts: EstimateOptions): CostEstimate {
   const scope = classifyEdit(message);
   if (scope === "major") {
+    const images = editImageBudget(message, opts);
+    const lines: CostLine[] = [{ label: "Major redesign", credits: CREDIT_COSTS.majorRedesign }];
+    if (images) lines.push({ label: `Up to ${images} new AI images (unused ones refunded)`, credits: images * CREDIT_COSTS.generatedImage });
     return {
       action: "edit-major",
-      total: CREDIT_COSTS.majorRedesign,
-      lines: [{ label: "Major redesign", credits: CREDIT_COSTS.majorRedesign }],
-      explanation: "This request changes most of the site, so the design is re-planned.",
+      total: lines.reduce((n, l) => n + l.credits, 0),
+      lines,
+      explanation: "This request re-plans the page: direction, structure, copy and imagery.",
     };
   }
   return {

@@ -213,6 +213,17 @@ export const AIPlanSchema = z.object({
     }),
   ),
   imageAlts: z.array(z.object({ assetId: z.string(), alt: z.string() })),
+  imagery: z
+    .array(
+      z.object({
+        key: z.string().describe("Short id like 'hero' or 'story-1'; reference it in sections as 'gen:<key>'"),
+        prompt: z.string().describe("Detailed art-directed image prompt: subject, setting, camera, lens, light, mood, palette"),
+        alt: z.string().describe("Alt text describing the image"),
+        aspect: z.enum(["landscape", "portrait", "square"]),
+      }),
+    )
+    .optional()
+    .describe("New images to generate, at most image_budget. Empty when the budget is 0."),
   notes: z.array(z.string()).describe("2-4 short plain-English notes about the choices made"),
 });
 export type AIPlan = z.infer<typeof AIPlanSchema>;

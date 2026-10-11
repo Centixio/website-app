@@ -81,7 +81,7 @@ function PickSelect({ id, value, onChange, options }: { id?: string; value: stri
   );
 }
 
-export function ConfigPanel({ projectId, config, patch, assets, onAssetUploaded, onAssetDeleted }: { projectId: string; config: WebsiteConfig; patch: Patch; assets: PublicAsset[]; onAssetUploaded: (a: PublicAsset) => void; onAssetDeleted: (id: string) => void }) {
+export function ConfigPanel({ projectId, config, patch, assets, aiImages, onAssetUploaded, onAssetDeleted }: { projectId: string; config: WebsiteConfig; patch: Patch; assets: PublicAsset[]; aiImages: boolean; onAssetUploaded: (a: PublicAsset) => void; onAssetDeleted: (id: string) => void }) {
   const ids = { purpose: useId(), placement: useId(), material: useId(), lighting: useId(), framing: useId(), quality: useId(), transition: useId(), fonts: useId(), lang: useId(), format: useId() };
   const s = config.scene;
   const m = config.motion;
@@ -288,6 +288,13 @@ export function ConfigPanel({ projectId, config, patch, assets, onAssetUploaded,
                 <PickSelect id={ids.lang} value={b.language} onChange={(v) => patch((c) => void (c.brand.language = v))} options={LANGUAGES.map(([id, name]) => ({ id, name }))} />
               </Field>
             </div>
+            <SwitchRow
+              label="AI-generated imagery"
+              checked={b.imagery !== "off"}
+              onChange={(v) => patch((c) => void (c.brand.imagery = v ? "ai" : "off"))}
+              disabled={!aiImages}
+              reason="Image generation isn't configured on this server."
+            />
             <fieldset className="space-y-2">
               <legend className="text-xs text-muted-foreground">Sections</legend>
               <RadioGroup value={b.sectionsMode} onValueChange={(v) => patch((c) => { c.brand.sectionsMode = v as "auto" | "custom"; if (v === "custom" && !c.brand.sections.length) c.brand.sections = ["hero", "features", "cta"]; })} className="flex gap-4">

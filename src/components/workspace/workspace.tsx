@@ -26,6 +26,8 @@ interface Props {
   initial: WorkspaceState;
   aiLabel: string;
   aiAvailable: boolean;
+  /** Server can generate AI images; keeps client estimates equal to the charge. */
+  aiImages: boolean;
   generationUnavailable: string | null;
   demo: boolean;
 }
@@ -62,7 +64,7 @@ function useIsDesktop(): boolean {
   );
 }
 
-export function Workspace({ initial, aiLabel, aiAvailable, generationUnavailable, demo }: Props) {
+export function Workspace({ initial, aiLabel, aiAvailable, aiImages, generationUnavailable, demo }: Props) {
   const router = useRouter();
   const [state, setState] = useState(initial);
   const [config, setConfig] = useState<WebsiteConfig>(initial.config.config);
@@ -230,7 +232,7 @@ export function Workspace({ initial, aiLabel, aiAvailable, generationUnavailable
   // ---------------------------------------------------------------- unapplied settings
   const hasVersion = Boolean(state.project.currentVersionId);
   const diff = useMemo(() => diffConfig(state.config.appliedConfig, config), [state.config.appliedConfig, config]);
-  const genEstimate = useMemo(() => estimateGeneration(config), [config]);
+  const genEstimate = useMemo(() => estimateGeneration(config, { aiImages }), [config, aiImages]);
 
   async function applySettings() {
     setApplying(true);
@@ -295,7 +297,7 @@ export function Workspace({ initial, aiLabel, aiAvailable, generationUnavailable
       <div>
         <h3 className="mb-1 flex items-center gap-1.5 text-sm font-medium"><SlidersHorizontal className="size-4 text-primary" aria-hidden /> Settings</h3>
         <p className="mb-2 text-[11px] text-muted-foreground">Changes are saved automatically and don&apos;t cost anything until you generate or apply them.</p>
-        <ConfigPanel projectId={projectId} config={config} patch={patch} assets={state.assets} onAssetUploaded={onAssetUploaded} onAssetDeleted={onAssetDeleted} />
+        <ConfigPanel projectId={projectId} config={config} patch={patch} assets={state.assets} aiImages={aiImages} onAssetUploaded={onAssetUploaded} onAssetDeleted={onAssetDeleted} />
       </div>
     </div>
   );
@@ -308,6 +310,7 @@ export function Workspace({ initial, aiLabel, aiAvailable, generationUnavailable
       activeJob={activeJob}
       credits={state.credits}
       generationEstimate={genEstimate}
+      aiImages={aiImages}
       aiLabel={aiLabel}
       onGenerate={onGenerate}
       onSend={onSend}

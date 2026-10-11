@@ -76,7 +76,13 @@ export function renderHero(section: Section, ctx: RenderContext, isFirst: boolea
     return `<section id="${section.id}" class="cx-hero"><div class="cx-wrap cx-hero-grid"><div>${text}</div>${stage(ctx, "main")}</div></section>`;
   }
   const image = section.imageAssetIds?.[0];
-  const media = image && ctx.assets.url(image) ? `<div class="cx-hero-media" data-cx-parallax="0.15">${mediaFor(ctx, image, spec.brand.name, spec.brand.name)}</div>` : "";
+  const imageUrl = image ? ctx.assets.url(image) : null;
+  if (image && imageUrl && isFirst) {
+    // Cinematic hero: full-bleed subject image that settles on load and pushes in as you scroll.
+    const alt = spec.assets.imageAlts[image] || spec.brand.name;
+    return `<section id="${section.id}" class="cx-hero cx-hero--image" data-cx-hero-image><div class="cx-hero-bg"><img src="${safeUrl(imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"></div><div class="cx-hero-shade" aria-hidden="true"></div><div class="cx-wrap cx-hero-copy">${text}</div>${spec.motion.intensity !== "subtle" ? `<span class="cx-scroll-hint" aria-hidden="true">Scroll</span>` : ""}</section>`;
+  }
+  const media = image && imageUrl ? `<div class="cx-hero-media" data-cx-parallax="0.15">${mediaFor(ctx, image, spec.brand.name, spec.brand.name)}</div>` : "";
   return `<section id="${section.id}" class="cx-hero cx-hero--centered"><div class="cx-wrap">${text}${media}</div>${spec.motion.intensity !== "subtle" ? `<span class="cx-scroll-hint" aria-hidden="true">Scroll</span>` : ""}</section>`;
 }
 
@@ -98,6 +104,24 @@ function renderExploded(section: Section, ctx: RenderContext): string {
 function renderStory(section: Section, ctx: RenderContext): string {
   const steps = section.items ?? [];
   const pin = ctx.spec.motion.pinned ? " data-cx-pin-story" : "";
+  const shots = steps.map((s) => (s.imageAssetId ? ctx.assets.url(s.imageAssetId) : null));
+  if (shots.filter(Boolean).length >= 2) {
+    // Image-led story: a pinned frame crossfades to each step's image as the steps advance.
+    const alt = (s: SectionItem) => (s.imageAssetId && ctx.spec.assets.imageAlts[s.imageAssetId]) || s.title;
+    let firstShown = false;
+    const frame = steps
+      .map((s, i) => {
+        const url = shots[i];
+        if (!url) return "";
+        const active = !firstShown;
+        firstShown = true;
+        return `<img src="${safeUrl(url)}" alt="${esc(alt(s))}" loading="lazy" decoding="async" data-cx-step-img="${i}"${active ? ' class="is-active"' : ""}>`;
+      })
+      .join("");
+    return `<section id="${section.id}" class="cx-section cx-story cx-story--media"${pin} data-cx-story-media><div class="cx-wrap cx-story-grid"><div class="cx-story-frame">${frame}</div><div><span class="cx-eyebrow">${esc(section.eyebrow || "The story")}</span><h2${revealAttr(ctx.spec)}>${esc(section.heading)}</h2>${paragraphs(section.body, "cx-muted")}<ol class="cx-story-steps" role="list" style="list-style:none;padding:0;margin:0">${steps
+      .map((s, i) => `<li class="cx-story-step${i === 0 ? " is-active" : ""}" data-cx-step>${shots[i] ? `<img class="cx-step-thumb" src="${safeUrl(shots[i]!)}" alt="" loading="lazy" decoding="async">` : ""}<span class="cx-step-meta cx-eyebrow" style="margin-bottom:0.5rem">${esc(s.meta || String(i + 1).padStart(2, "0"))}</span><h3>${esc(s.title)}</h3>${paragraphs(s.body, "cx-muted")}</li>`)
+      .join("")}</ol></div></div></section>`;
+  }
   return `<section id="${section.id}" class="cx-section cx-story"${pin}><div class="cx-wrap cx-story-grid"><div><span class="cx-eyebrow">${esc(section.eyebrow || "The story")}</span><h2${revealAttr(ctx.spec)}>${esc(section.heading)}</h2>${paragraphs(section.body, "cx-muted")}</div><ol class="cx-story-steps" role="list" style="list-style:none;padding:0;margin:0">${steps
     .map((s, i) => `<li class="cx-story-step${i === 0 ? " is-active" : ""}" data-cx-step><span class="cx-step-meta cx-eyebrow" style="margin-bottom:0.5rem">${esc(s.meta || String(i + 1).padStart(2, "0"))}</span><h3>${esc(s.title)}</h3>${paragraphs(s.body, "cx-muted")}</li>`)
     .join("")}</ol></div></section>`;

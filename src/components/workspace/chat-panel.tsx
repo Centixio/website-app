@@ -21,6 +21,7 @@ interface Props {
   activeJob: Job | null;
   credits: CreditSummary;
   generationEstimate: CostEstimate | null;
+  aiImages: boolean;
   aiLabel: string;
   onGenerate: (prompt: string, cost: number) => Promise<void>;
   onSend: (message: string, cost: number) => Promise<void>;
@@ -59,13 +60,13 @@ function JobProgress({ job, onCancel }: { job: Job; onCancel: () => void }) {
   );
 }
 
-export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, generationEstimate, aiLabel, onGenerate, onSend, onCancel, generationUnavailable }: Props) {
+export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, generationEstimate, aiImages, aiLabel, onGenerate, onSend, onCancel, generationUnavailable }: Props) {
   const [brief, setBrief] = useState(prompt);
   const [draft, setDraft] = useState("");
   const [confirm, setConfirm] = useState<null | { kind: "generate" | "edit"; estimate: CostEstimate; text: string }>(null);
   const [sending, setSending] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
-  const editEstimate = useMemo(() => (draft.trim().length > 1 ? estimateEdit(draft) : null), [draft]);
+  const editEstimate = useMemo(() => (draft.trim().length > 1 ? estimateEdit(draft, { aiImages }) : null), [draft, aiImages]);
 
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView, which must not be used as effect cleanup.

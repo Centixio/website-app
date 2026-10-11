@@ -3,12 +3,12 @@ import crypto from "node:crypto";
 import { after } from "next/server";
 import { LIMITS } from "@/config/limits";
 import { env } from "@/lib/env";
-import { getProvider } from "@/lib/ai";
+import { aiImagesAvailable, getProvider } from "@/lib/ai";
 import type { Session } from "@/lib/auth/session";
 import { HttpError } from "@/lib/api/http";
 import type { AssetSummary } from "@/lib/recommend/engine";
 import type { Job, UserStore } from "@/lib/data/types";
-import { estimateEdit, estimateGeneration, diffConfig, classifyEdit } from "@/lib/credits/estimate";
+import { estimateEdit, estimateGeneration, diffConfig, classifyEdit, editImageBudget, generationImageBudget } from "@/lib/credits/estimate";
 import { reapplyConfig, specToPlan } from "@/lib/spec/normalize";
 import { validateOutput } from "@/lib/spec/validate";
 import { referencedAssetIds, renderPortable, renderPreview } from "@/lib/pipeline/render";
@@ -63,14 +63,15 @@ export async function startGeneration(session: Session, projectId: string, input
   const project = await store.getProject(projectId);
   if (!project) throw new HttpError(404, "not_found", "Project not found.");
   const { config } = await store.getConfig(projectId);
-  const estimate = estimateGeneration(config);
+  const opts = { aiImages: aiImagesAvailable() };
+  const estimate = estimateGeneration(config, opts);
   confirmCost(input.expectedCost, estimate.total);
   if (input.prompt !== project.prompt) await store.updatePrompt(projectId, input.prompt);
   await store.addUserMessage(projectId, input.prompt, { kind: "brief", idempotency_key: input.idempotencyKey });
   const job = await store.enqueueJob({
     projectId,
     kind: "generate",
-    input: { prompt: input.prompt, config, baseVersionId: project.currentVersionId },
+    input: { prompt: input.prompt, config, baseVersionId: project.currentVersionId, imageBudget: generationImageBudget(config, opts) },
     cost: estimate.total,
     idempotencyKey: input.idempotencyKey,
     ...(await planLimits(store)),
@@ -84,15 +85,16 @@ export async function startEdit(session: Session, projectId: string, input: { me
   requireProvider();
   const project = await store.getProject(projectId);
   if (!project) throw new HttpError(404, "not_found", "Project not found.");
-  if (!project.currentVersionId) throw new HttpError(409, "no_version", "Generate the website first, then refine it in chat.");
+  if (!project.currentVersionId) throw new HttpError(409, "no_version", "Generate the landing page first, then refine it in chat.");
   const { config } = await store.getConfig(projectId);
-  const estimate = estimateEdit(input.message);
+  const opts = { aiImages: aiImagesAvailable() };
+  const estimate = estimateEdit(input.message, opts);
   confirmCost(input.expectedCost, estimate.total);
   await store.addUserMessage(projectId, input.message, { kind: input.source === "settings" ? "settings" : "edit", idempotency_key: input.idempotencyKey });
   const job = await store.enqueueJob({
     projectId,
     kind: "edit",
-    input: { prompt: project.prompt, instruction: input.message, editScope: classifyEdit(input.message), config, baseVersionId: project.currentVersionId },
+    input: { prompt: project.prompt, instruction: input.message, editScope: classifyEdit(input.message), config, baseVersionId: project.currentVersionId, imageBudget: editImageBudget(input.message, opts) },
     cost: estimate.total,
     idempotencyKey: input.idempotencyKey,
     ...(await planLimits(store)),
