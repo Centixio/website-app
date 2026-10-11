@@ -24,6 +24,12 @@ export interface PlanRequest {
   imageBudget: number;
 }
 
+/** A chat message given to the AI as conversation context. */
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface EditRequest {
   instruction: string;
   scope: "small" | "major";
@@ -33,6 +39,17 @@ export interface EditRequest {
   assets: AssetSummary[];
   reference?: ReferenceImage | null;
   imageBudget: number;
+  /** Recent conversation, oldest first (excluding this instruction). */
+  history: ChatTurn[];
+}
+
+/** A question about the page, answered in chat without changing anything. */
+export interface AnswerRequest {
+  question: string;
+  prompt: string;
+  /** The current design plan, or null before the first generation. */
+  current: AIPlan | null;
+  history: ChatTurn[];
 }
 
 export interface RepairRequest {
@@ -42,12 +59,16 @@ export interface RepairRequest {
 
 export interface AIProvider {
   id: string;
-  /** Shown to users on each version, e.g. "Claude (claude-opus-5-5)". */
+  /** User-facing name ("Centixio AI"); never the vendor's model name. */
   label: string;
+  /** Internal identifier stored on versions for debugging, e.g. "anthropic/claude-opus-5-5". */
+  modelId: string;
   isAI: boolean;
   plan(req: PlanRequest, signal?: AbortSignal): Promise<AIPlan>;
   edit(req: EditRequest, signal?: AbortSignal): Promise<AIPlan>;
   repair(req: RepairRequest, signal?: AbortSignal): Promise<AIPlan>;
+  /** Conversational answer to a question about the page (plain text). */
+  answer(req: AnswerRequest, signal?: AbortSignal): Promise<string>;
   /** Optional: rephrase/re-rank rule recommendations. Must not invent settings. */
   refineRecommendations?(input: { prompt: string; recs: Recommendation[] }, signal?: AbortSignal): Promise<{ id: string; explanation: string }[]>;
 }

@@ -7,7 +7,7 @@ export interface CostLine {
 }
 
 export interface CostEstimate {
-  action: "generate" | "edit-small" | "edit-major" | "reassemble" | "restore" | "repair";
+  action: "generate" | "ask" | "edit-small" | "edit-major" | "reassemble" | "restore" | "repair";
   total: number;
   lines: CostLine[];
   explanation: string;
@@ -61,6 +61,25 @@ const QUALITY = /\b(improve|upgrade|elevate|level up|enhance|polish|better|premi
 /** …unless they name a specific element ("improve the headline"). */
 const TARGETED = /\b(heading|headline|title|button|text|copy|wording|font|colou?rs?|faq|price|pricing|email|link|cta|logo|footer|nav)\b/i;
 
+/** Words that make a message a change request even when phrased as a question ("can you make it blue?"). */
+const CHANGE_VERBS = /\b(make|change|add|remove|delete|replace|use|switch|swap|turn|move|put|set|increase|decrease|reduce|enlarge|shrink|rewrite|redo|redesign|fix|update|include|drop|try|translate|generate|create|improve|show)\b/i;
+/** Asking about what exists or for advice ("why did you use…", "should it be serif?"). */
+const INQUIRY_START = /^(why|what(?! if\b| about\b)|which|who|where|when|is|are|does|did|was|were|should|explain|tell me|help me understand|how (do|does|did|can|could|would|is|are|much|many))\b/i;
+/** Polite requests ("can you make it blue?") are changes when they contain an action. */
+const REQUEST_START = /^(can|could|would|will|please)\b/i;
+
+/**
+ * Questions about the page are answered in chat for free and change nothing.
+ * Deterministic so the "Free" label shown before sending is what happens.
+ */
+export function isQuestion(message: string): boolean {
+  const m = message.trim();
+  if (!m) return false;
+  if (INQUIRY_START.test(m)) return true;
+  if (REQUEST_START.test(m)) return !CHANGE_VERBS.test(m);
+  return m.endsWith("?") && !CHANGE_VERBS.test(m);
+}
+
 /** Deterministic classification so the cost shown before sending is the cost charged. */
 export function classifyEdit(message: string): "small" | "major" {
   if (MAJOR_PATTERNS.some((re) => re.test(message))) return "major";
@@ -72,6 +91,9 @@ export function editImageBudget(message: string, opts: EstimateOptions): number 
 }
 
 export function estimateEdit(message: string, opts: EstimateOptions): CostEstimate {
+  if (isQuestion(message)) {
+    return { action: "ask", total: 0, lines: [], explanation: "Questions are answered in chat and don't change the page." };
+  }
   const scope = classifyEdit(message);
   if (scope === "major") {
     const images = editImageBudget(message, opts);

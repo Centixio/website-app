@@ -5,7 +5,7 @@ import { CREDIT_COSTS } from "@/config/pricing";
 import { getImageProvider } from "@/lib/ai/images";
 import { WebsiteConfigSchema, type WebsiteConfig } from "@/lib/config-schema";
 import { getProvider } from "@/lib/ai";
-import { ProviderError, type ReferenceImage } from "@/lib/ai/provider";
+import { ProviderError, type ChatTurn, type ReferenceImage } from "@/lib/ai/provider";
 import { createRulesPlan } from "@/lib/ai/rules-planner";
 import { normalizePlan, specToPlan } from "@/lib/spec/normalize";
 import { validateOutput } from "@/lib/spec/validate";
@@ -76,7 +76,7 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
       if (job.kind === "repair") {
         plan = current;
       } else {
-        plan = await provider.edit({ instruction: input.instruction ?? "", scope: input.editScope ?? "small", current, prompt: input.prompt, config, assets, reference, imageBudget }, abort.signal);
+        plan = await provider.edit({ instruction: input.instruction ?? "", scope: input.editScope ?? "small", current, prompt: input.prompt, config, assets, reference, imageBudget, history: conversation(ctx.recentMessages, input.instruction ?? "") }, abort.signal);
         prefer = "plan";
       }
     }
@@ -120,7 +120,7 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
     await setStage("saving");
     // The reservation settles in full; images that weren't made come back as a separate, idempotent refund.
     const charge = job.cost - unusedImageCredits;
-    const message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge, imagesMade, unusedImageCredits);
+    const message = composeMessage(job, built.spec, built.fixes, provider.label, provider.isAI, charge, imagesMade, unusedImageCredits, plan.reply);
     await worker.completeJob(
       job.id,
       workerId,
@@ -132,7 +132,7 @@ export async function processJob(job: Job, worker: WorkerStore, workerId: string
         html: built.html,
         asset_refs: referencedAssetIds(built.spec),
         credit_charge: charge,
-        provider: provider.label,
+        provider: provider.modelId,
         notes: [...built.spec.notes, ...built.fixes].slice(0, 10),
         parent_version_id: input.baseVersionId ?? null,
       },
@@ -175,7 +175,17 @@ async function loadReference(config: WebsiteConfig, ctx: Awaited<ReturnType<Work
   return { mediaType, base64: Buffer.from(bytes).toString("base64") };
 }
 
-function composeMessage(job: Job, spec: DesignSpec, fixes: string[], providerLabel: string, isAI: boolean, charge: number, imagesMade: number, refunded: number): string {
+/** Recent chat turns for context, without the instruction being processed (it is passed separately). */
+function conversation(messages: { role: string; content: string }[], instruction: string): ChatTurn[] {
+  const turns = messages.filter((m): m is ChatTurn => m.role === "user" || m.role === "assistant");
+  const last = turns[turns.length - 1];
+  return last && last.role === "user" && last.content.trim() === instruction.trim() ? turns.slice(0, -1) : turns;
+}
+
+function composeMessage(job: Job, spec: DesignSpec, fixes: string[], providerLabel: string, isAI: boolean, charge: number, imagesMade: number, refunded: number, reply?: string): string {
+  const cost = charge > 0 ? `${charge} credits charged${refunded ? ` (${refunded} reserved for images refunded)` : ""}.` : "No credits charged.";
+  // The AI's own reply reads like a conversation; templated notes are the fallback.
+  if (isAI && reply?.trim() && job.kind !== "repair") return `${reply.trim().slice(0, 3000)}\n\n${cost}`;
   const lines: string[] = [];
   const extras = [spec.scene.enabled ? "an interactive 3D scene" : "", imagesMade ? `${imagesMade} custom image${imagesMade === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
   if (job.kind === "generate") lines.push(`Your landing page is ready: a ${spec.direction.replace(/-/g, " ")} design with ${spec.sections.length} sections${extras ? ` and ${extras}` : ""}.`);
@@ -183,6 +193,6 @@ function composeMessage(job: Job, spec: DesignSpec, fixes: string[], providerLab
   else lines.push(imagesMade ? `Done — I've redesigned the page with ${imagesMade} new image${imagesMade === 1 ? "" : "s"}.` : "Done — I've updated the page.");
   for (const n of spec.notes.slice(0, 4)) lines.push(`• ${n}`);
   for (const f of fixes.slice(0, 3)) lines.push(`• ${f}`);
-  lines.push(`${isAI ? `Generated with ${providerLabel}` : providerLabel}. ${charge > 0 ? `${charge} credits charged${refunded ? ` (${refunded} reserved for images refunded)` : ""}.` : "No credits charged."}`);
+  lines.push(isAI ? cost : `${providerLabel}. ${cost}`);
   return lines.join("\n");
 }

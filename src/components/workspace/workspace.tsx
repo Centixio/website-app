@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LogoMark } from "@/components/brand/logo";
 import { deepMerge, type WebsiteConfig } from "@/lib/config-schema";
-import { diffConfig, estimateGeneration } from "@/lib/credits/estimate";
+import { diffConfig, estimateGeneration, isQuestion } from "@/lib/credits/estimate";
 import type { Recommendation } from "@/lib/recommend/engine";
 import type { Job, ProjectSummary } from "@/lib/data/types";
 import { api, ApiError, newIdempotencyKey } from "@/lib/client/api";
@@ -208,11 +208,24 @@ export function Workspace({ initial, aiLabel, aiAvailable, aiImages, generationU
     [config, handleJobStart, projectId],
   );
 
+  const [asking, setAsking] = useState<string | null>(null);
   const onSend = useCallback(
     async (message: string, cost: number) => {
+      if (isQuestion(message)) {
+        setAsking(message);
+        try {
+          await api(`/api/projects/${projectId}/ask`, { method: "POST", json: { message } });
+        } catch (e) {
+          toast.error((e as Error).message);
+        } finally {
+          await refresh().catch(() => {});
+          setAsking(null);
+        }
+        return;
+      }
       await handleJobStart(() => api(`/api/projects/${projectId}/messages`, { method: "POST", json: { message, idempotencyKey: newIdempotencyKey("edit"), expectedCost: cost } })).catch(() => {});
     },
-    [handleJobStart, projectId],
+    [handleJobStart, projectId, refresh],
   );
 
   const onCancel = useCallback(async () => {
@@ -312,6 +325,7 @@ export function Workspace({ initial, aiLabel, aiAvailable, aiImages, generationU
       generationEstimate={genEstimate}
       aiImages={aiImages}
       aiLabel={aiLabel}
+      asking={asking}
       onGenerate={onGenerate}
       onSend={onSend}
       onCancel={onCancel}

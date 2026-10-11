@@ -58,6 +58,8 @@ Section content conventions:
 - gallery: list uploaded image ids in imageAssetIds; never reference ids that were not provided.
 - kinetic-type: heading is a short phrase (2–4 words); items optional extra phrases.
 
+Write "reply" as your chat message to the user (see its description): what you made and why, in your own words, as Centixio. Never mention the underlying AI model or vendor.
+
 Respond only with the structured plan.`;
 
 export function briefMessage(input: { prompt: string; settings: unknown; assets: unknown; baseline: unknown; hasReference: boolean; imageBudget: number }): string {
@@ -86,7 +88,7 @@ export function briefMessage(input: { prompt: string; settings: unknown; assets:
   ].join("\n");
 }
 
-export function editMessage(input: { instruction: string; scope: "small" | "major"; current: unknown; settings: unknown; assets: unknown; prompt: string; imageBudget: number }): string {
+export function editMessage(input: { instruction: string; scope: "small" | "major"; current: unknown; settings: unknown; assets: unknown; prompt: string; imageBudget: number; history: { role: string; content: string }[] }): string {
   const scopeRule =
     input.scope === "small"
       ? "This is a targeted edit. Change only what the request needs. Copy every other field from the current plan exactly, including section order and copy."
@@ -94,6 +96,11 @@ export function editMessage(input: { instruction: string; scope: "small" | "majo
   return [
     "Update the current design plan according to the user's request.",
     scopeRule,
+    "Read the conversation: the request may refer to earlier messages (\"like I said\", \"the other one\", \"undo that\"). If it contains a question as well as a change, answer it in reply.",
+    "",
+    "<conversation>",
+    conversationText(input.history),
+    "</conversation>",
     "",
     "<request>",
     input.instruction,
@@ -117,7 +124,42 @@ export function editMessage(input: { instruction: string; scope: "small" | "majo
     "",
     `<image_budget>${input.imageBudget}</image_budget>`,
     "",
-    "In notes, briefly say what you changed.",
+    "In notes, briefly say what you changed. Write reply as your chat message to the user.",
+  ].join("\n");
+}
+
+function conversationText(history: { role: string; content: string }[]): string {
+  if (!history.length) return "(no earlier messages)";
+  return history.map((m) => `${m.role === "user" ? "User" : "Centixio"}: ${m.content.slice(0, 1500)}`).join("\n\n");
+}
+
+/** System prompt for chat answers (questions that don't change the page). */
+export const CHAT_SYSTEM_PROMPT = `You are Centixio, the design partner inside a product that builds immersive, scroll-driven 3D landing pages. You are talking with the owner of one landing page in its chat.
+
+How you work:
+- Answer the user's question directly and specifically about THEIR page: its direction, palette, typography, 3D subject, imagery, motion and sections, using the current plan you are given. Explain the reasoning behind choices when asked.
+- Be concise and warm, like a senior designer: usually 2-6 sentences, plain text, no headings. Use a short list only when it genuinely helps.
+- This answer does not change the page. If the user would benefit from a change, suggest it as something they can send as a request (e.g. "Ask me to 'switch the hero to a full-bleed photo' and I'll do it"). Never claim you changed anything.
+- Be honest about limits: Centixio builds single-page landing pages; the 3D library has a fixed set of objects (users can upload their own GLB model); images can be AI-generated or uploaded; exports are static HTML/ZIP; forms need the user's own form endpoint.
+- Never invent facts about the user's business. Never mention the underlying AI model or vendor; you are Centixio.`;
+
+export function answerMessage(input: { question: string; prompt: string; current: unknown; history: { role: string; content: string }[] }): string {
+  return [
+    "<original_brief>",
+    input.prompt,
+    "</original_brief>",
+    "",
+    "<current_plan>",
+    input.current ? JSON.stringify(input.current) : "(nothing generated yet)",
+    "</current_plan>",
+    "",
+    "<conversation>",
+    conversationText(input.history),
+    "</conversation>",
+    "",
+    "<question>",
+    input.question,
+    "</question>",
   ].join("\n");
 }
 

@@ -24,7 +24,7 @@ export default async function WorkspacePage(props: PageProps<"/projects/[project
     store.listAssets(projectId),
   ]);
   const { provider, reason } = getProvider();
-  const aiLabel = provider ? (provider.isAI ? `Uses ${provider.label}` : `${provider.label} — templated copy; add an AI key for tailored results`) : "Generation unavailable";
+  const aiLabel = provider ? (provider.isAI ? `Powered by ${provider.label}` : `${provider.label} — templated copy; add an AI key for tailored results`) : "Generation unavailable";
   return (
     <>
       <SiteFontsLoader />

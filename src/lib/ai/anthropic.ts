@@ -2,10 +2,10 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { AIPlanSchema, type AIPlan } from "@/lib/spec/schema";
+import { AIPlanOutputSchema, planFromOutput, type AIPlan, type AIPlanOutput } from "@/lib/spec/schema";
 import { env } from "@/lib/env";
-import { SYSTEM_PROMPT, briefMessage, editMessage, repairMessage } from "./prompts";
-import { ProviderError, type AIProvider, type EditRequest, type PlanRequest, type ReferenceImage, type RepairRequest } from "./provider";
+import { CHAT_SYSTEM_PROMPT, SYSTEM_PROMPT, answerMessage, briefMessage, editMessage, repairMessage } from "./prompts";
+import { ProviderError, type AIProvider, type AnswerRequest, type EditRequest, type PlanRequest, type ReferenceImage, type RepairRequest } from "./provider";
 
 const RecommendationNotesSchema = z.object({
   items: z.array(z.object({ id: z.string(), explanation: z.string() })),
@@ -19,13 +19,14 @@ const RecommendationNotesSchema = z.object({
 export class AnthropicProvider implements AIProvider {
   readonly id = "anthropic";
   readonly isAI = true;
-  readonly label: string;
+  readonly label = "Centixio AI";
+  readonly modelId: string;
   private client: Anthropic;
   private model: string;
 
   constructor() {
     this.model = env.anthropicModel();
-    this.label = `Claude (${this.model})`;
+    this.modelId = `anthropic/${this.model}`;
     this.client = new Anthropic({ apiKey: env.anthropicApiKey(), maxRetries: 2, timeout: 10 * 60 * 1000 });
   }
 
@@ -68,16 +69,46 @@ export class AnthropicProvider implements AIProvider {
 
   plan(req: PlanRequest, signal?: AbortSignal): Promise<AIPlan> {
     const text = briefMessage({ prompt: req.prompt, settings: req.config, assets: req.assets.map(assetForPrompt), baseline: req.baseline, hasReference: Boolean(req.reference), imageBudget: req.imageBudget });
-    return this.call(AIPlanSchema, text, req.reference, 16000, signal);
+    return this.call<AIPlanOutput>(AIPlanOutputSchema, text, req.reference, 16000, signal).then(planFromOutput);
   }
 
   edit(req: EditRequest, signal?: AbortSignal): Promise<AIPlan> {
-    const text = editMessage({ instruction: req.instruction, scope: req.scope, current: req.current, settings: req.config, assets: req.assets.map(assetForPrompt), prompt: req.prompt, imageBudget: req.imageBudget });
-    return this.call(AIPlanSchema, text, req.reference, 16000, signal);
+    const text = editMessage({ instruction: req.instruction, scope: req.scope, current: req.current, settings: req.config, assets: req.assets.map(assetForPrompt), prompt: req.prompt, imageBudget: req.imageBudget, history: req.history });
+    return this.call<AIPlanOutput>(AIPlanOutputSchema, text, req.reference, 16000, signal).then(planFromOutput);
   }
 
   repair(req: RepairRequest, signal?: AbortSignal): Promise<AIPlan> {
-    return this.call(AIPlanSchema, repairMessage(req.plan, req.problems), null, 16000, signal);
+    return this.call<AIPlanOutput>(AIPlanOutputSchema, repairMessage(req.plan, req.problems), null, 16000, signal).then(planFromOutput);
+  }
+
+  async answer(req: AnswerRequest, signal?: AbortSignal): Promise<string> {
+    try {
+      const res = await this.client.beta.messages.create(
+        {
+          model: this.model,
+          max_tokens: 2000,
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          system: [{ type: "text", text: CHAT_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          output_config: { effort: "low" },
+          messages: [{ role: "user", content: answerMessage(req) }],
+        },
+        { signal },
+      );
+      if (res.stop_reason === "refusal") throw new ProviderError("I can't help with that request.", false, "refused");
+      const text = res.content
+        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      if (!text) throw new ProviderError("The answer came back empty. Please try again.", true, "invalid_output");
+      return text;
+    } catch (err) {
+      if (err instanceof ProviderError) throw err;
+      if (err instanceof Anthropic.RateLimitError) throw new ProviderError("Too many requests right now. Please try again in a moment.", true, "rate_limited");
+      if (err instanceof Anthropic.APIError) throw new ProviderError("The assistant is temporarily unavailable. Please try again.", true, "unavailable");
+      throw err;
+    }
   }
 
   async refineRecommendations(input: { prompt: string; recs: { id: string; title: string; explanation: string }[] }, signal?: AbortSignal) {
@@ -96,5 +127,5 @@ export class AnthropicProvider implements AIProvider {
 }
 
 function assetForPrompt(a: { id: string; kind: string; name: string; meta: Record<string, unknown> }) {
-  return { id: a.id, kind: a.kind, name: a.name, separable: a.meta.separable ?? undefined, parts: a.meta.meshCount ?? undefined };
+  return { id: a.id, kind: a.kind, name: a.name, separable: a.meta.separable ?? undefined, parts: a.meta.meshCount ?? undefined, generated: a.meta.generated ?? undefined, depicts: typeof a.meta.prompt === "string" ? a.meta.prompt.slice(0, 200) : undefined };
 }

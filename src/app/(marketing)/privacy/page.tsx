@@ -27,6 +27,7 @@ export default function PrivacyPage() {
         <li><strong>Supabase</strong> — authentication, database and file storage.</li>
         <li><strong>Stripe</strong> — payments and subscriptions.</li>
         <li><strong>Anthropic</strong> — AI generation. Your descriptions, settings, project text and any reference screenshot are sent to generate and edit designs.</li>
+        <li><strong>OpenAI</strong> — image generation. Image descriptions written for your page (not your uploads) are sent to create custom imagery.</li>
         <li><strong>Google Fonts</strong> — fonts load from Google&apos;s servers in previews and exported sites.</li>
         <li><strong>Fontshare</strong> — the Centixio site&apos;s own typeface (Satoshi) loads from Indian Type Foundry&apos;s servers.</li>
       </ul>

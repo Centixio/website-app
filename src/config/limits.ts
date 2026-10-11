@@ -4,6 +4,10 @@ export const LIMITS = {
   concurrentJobs: { free: 1, starter: 2, pro: 3 } as Record<string, number>,
   /** Max chargeable jobs a user may enqueue per rolling hour. */
   jobsPerHour: 30,
+  /** Free chat questions (answered without changing the page). */
+  questionsPerHour: 40,
+  /** Recent chat messages given to the AI as conversation context. */
+  chatContextMessages: 16,
   /** AI-enhanced recommendation calls per user per hour. */
   aiRecommendationsPerHour: 20,
   /** Max attempts a worker makes for one job (lease expiry or transient errors). */

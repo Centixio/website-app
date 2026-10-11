@@ -453,17 +453,20 @@ export class SupabaseWorkerStore implements WorkerStore {
   }
 
   async loadJobContext(job: Job) {
-    const [assets, base] = await Promise.all([
+    const [assets, base, msgs] = await Promise.all([
       this.admin.from("assets").select("*").eq("project_id", job.projectId).eq("user_id", job.userId),
       job.input.baseVersionId
         ? this.admin.from("project_versions").select("*").eq("id", job.input.baseVersionId).eq("project_id", job.projectId).maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      this.admin.from("messages").select("id, role, content, metadata, created_at").eq("project_id", job.projectId).order("created_at", { ascending: false }).limit(LIMITS.chatContextMessages),
     ]);
     if (assets.error) mapError(assets.error);
+    if (msgs.error) mapError(msgs.error);
     if (base.error) mapError(base.error);
     return {
       assets: (assets.data ?? []).map(mapAsset),
       baseVersion: base.data ? mapVersion(base.data) : null,
+      recentMessages: (msgs.data ?? []).reverse().map((m) => ({ id: m.id, role: m.role, content: m.content, metadata: m.metadata ?? {}, createdAt: m.created_at })),
       readAsset: async (a: Asset) => {
         const { data, error } = await this.admin.storage.from(BUCKET).download(a.storagePath);
         if (error || !data) throw new Error("Could not read asset");

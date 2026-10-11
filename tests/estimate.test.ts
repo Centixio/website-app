@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyEdit, diffConfig, estimateEdit, estimateGeneration, isComplex3d } from "@/lib/credits/estimate";
+import { classifyEdit, diffConfig, estimateEdit, estimateGeneration, isComplex3d, isQuestion } from "@/lib/credits/estimate";
 import { CREDIT_COSTS, IMAGE_BUDGET } from "@/config/pricing";
 import { modelFitsBrief } from "@/lib/catalog/models";
 
@@ -33,6 +33,16 @@ describe("cost estimation", () => {
       expect(classifyEdit(s)).toBe("major");
     }
     for (const s of ["Improve the headline", "Make the button text better"]) expect(classifyEdit(s)).toBe("small");
+  });
+
+  it("answers questions for free but treats change requests phrased as questions as edits", () => {
+    for (const q of ["why did you use an orb?", "What font is the headline?", "how do I change the font?", "is this mobile friendly", "Would a lighter palette suit a bakery?"]) {
+      expect(isQuestion(q)).toBe(true);
+      expect(estimateEdit(q, IMAGES).total).toBe(0);
+    }
+    for (const q of ["can you make the hero bigger?", "could you add a pricing section?", "Make it darker", "use a serif font"]) {
+      expect(isQuestion(q)).toBe(false);
+    }
   });
 
   it("adds AI image credits only when images can be generated and imagery is on", () => {

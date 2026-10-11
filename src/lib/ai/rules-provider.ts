@@ -195,7 +195,12 @@ export function applyRuleEdit(plan: AIPlan, instruction: string, prompt: string)
 export class RulesProvider implements AIProvider {
   readonly id = "rules";
   readonly label = "Rule-based composer (no AI)";
+  readonly modelId = "rules";
   readonly isAI = false;
+
+  async answer(): Promise<string> {
+    return "Answering questions needs the AI assistant, which isn't configured on this server. You can still send change requests like “make the scroll more dramatic” or “add a pricing section”.";
+  }
 
   async plan(req: PlanRequest): Promise<AIPlan> {
     return createRulesPlan(req.prompt, req.config, req.assets);

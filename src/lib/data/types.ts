@@ -204,5 +204,5 @@ export interface WorkerStore {
   /** Return credits the job reserved but did not use (e.g. images that weren't generated). Idempotent per job. */
   refundUnused(job: Job, amount: number, description: string): Promise<void>;
   /** Load what a worker needs, bypassing RLS (the job row identifies the owner). */
-  loadJobContext(job: Job): Promise<{ assets: Asset[]; baseVersion: Version | null; readAsset(a: Asset): Promise<Uint8Array> }>;
+  loadJobContext(job: Job): Promise<{ assets: Asset[]; baseVersion: Version | null; readAsset(a: Asset): Promise<Uint8Array>; recentMessages: Message[] }>;
 }

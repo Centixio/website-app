@@ -129,6 +129,23 @@ export const DesignSpecSchema = z.object({
 });
 export type DesignSpec = z.infer<typeof DesignSpecSchema>;
 
+const AIImageryField = z
+  .array(
+    z.object({
+      key: z.string().describe("Short id like 'hero' or 'story-1'; reference it in sections as 'gen:<key>'"),
+      prompt: z.string().describe("Detailed art-directed image prompt: subject, setting, camera, lens, light, mood, palette"),
+      alt: z.string().describe("Alt text describing the image"),
+      aspect: z.enum(["landscape", "portrait", "square"]),
+    }),
+  )
+  .describe("New images to generate (at most image_budget). Also give alt text for each uploaded image you use: an entry with key = its asset id, prompt '' and the alt.");
+
+const AIReplyField = z
+  .string()
+  .describe(
+    "Your chat message to the user, shown after this version is saved: natural, specific and brief (2-5 sentences). Say what you did and why, answer anything they asked, and mention what they could try next. No bullet lists of settings, no model or vendor names.",
+  );
+
 /**
  * Looser schema used for AI structured output. It keeps the same shape but
  * avoids constraints that structured-output JSON Schema handles poorly
@@ -213,17 +230,52 @@ export const AIPlanSchema = z.object({
     }),
   ),
   imageAlts: z.array(z.object({ assetId: z.string(), alt: z.string() })),
-  imagery: z
-    .array(
-      z.object({
-        key: z.string().describe("Short id like 'hero' or 'story-1'; reference it in sections as 'gen:<key>'"),
-        prompt: z.string().describe("Detailed art-directed image prompt: subject, setting, camera, lens, light, mood, palette"),
-        alt: z.string().describe("Alt text describing the image"),
-        aspect: z.enum(["landscape", "portrait", "square"]),
-      }),
-    )
-    .optional()
-    .describe("New images to generate, at most image_budget. Empty when the budget is 0."),
+  imagery: AIImageryField.optional(),
   notes: z.array(z.string()).describe("2-4 short plain-English notes about the choices made"),
+  reply: AIReplyField.optional(),
 });
 export type AIPlan = z.infer<typeof AIPlanSchema>;
+
+/**
+ * The exact schema sent to the AI for structured output. Structured-output
+ * grammars have a size limit and every optional field multiplies it, so this
+ * drops internal-only fields (filmId: samples only) and makes the AI's own
+ * fields required (an empty list / string when unused). Its output is a valid
+ * AIPlan.
+ */
+const AISectionOutputSchema = z.object({
+  type: z.enum(SECTION_TYPE_IDS),
+  eyebrow: z.string().describe("Empty string for none"),
+  heading: z.string(),
+  body: z.string().describe("Empty string for none"),
+  variant: z.enum(["default", "centered", "split", "minimal"]),
+  items: z.array(
+    z.object({
+      title: z.string(),
+      body: z.string().describe("Empty string for none"),
+      meta: z.string().describe("Empty string for none"),
+      imageAssetId: z.string().describe("Asset id or 'gen:<key>'; empty string for none"),
+    }),
+  ),
+  ctaLabel: z.string().describe("Empty string for none"),
+  imageAssetIds: z.array(z.string()),
+});
+export const AIPlanOutputSchema = AIPlanSchema.omit({ sections: true, imagery: true, reply: true, imageAlts: true }).extend({
+  sections: z.array(AISectionOutputSchema),
+  imagery: AIImageryField,
+  reply: AIReplyField,
+});
+
+export type AIPlanOutput = z.infer<typeof AIPlanOutputSchema>;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Converts the AI's compact output into an AIPlan (alt-text-only imagery entries become imageAlts). */
+export function planFromOutput(out: AIPlanOutput): AIPlan {
+  const isAlt = (i: { key: string; prompt: string }) => UUID.test(i.key.trim()) && !i.prompt.trim();
+  return {
+    ...out,
+    imageAlts: out.imagery.filter(isAlt).map((i) => ({ assetId: i.key.trim(), alt: i.alt })),
+    imagery: out.imagery.filter((i) => !isAlt(i)),
+  };
+}

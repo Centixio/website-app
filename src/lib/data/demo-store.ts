@@ -571,6 +571,10 @@ export class DemoWorkerStore implements WorkerStore {
       return {
         assets,
         baseVersion: base ? ({ ...base, config: coerceConfig(base.config) } as Version) : null,
+        recentMessages: db.messages
+          .filter((m) => m.projectId === job.projectId)
+          .slice(-LIMITS.chatContextMessages)
+          .map(({ projectId: _p, userId: _u, ...m }) => m),
         readAsset: async (a: Asset) => new Uint8Array(fs.readFileSync(path.join(DIR, "assets", a.storagePath))),
       };
     });

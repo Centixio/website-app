@@ -23,10 +23,30 @@ interface Props {
   generationEstimate: CostEstimate | null;
   aiImages: boolean;
   aiLabel: string;
+  /** A question being answered right now (shown optimistically). */
+  asking: string | null;
   onGenerate: (prompt: string, cost: number) => Promise<void>;
   onSend: (message: string, cost: number) => Promise<void>;
   onCancel: () => void;
   generationUnavailable: string | null;
+}
+
+/** Minimal, safe formatting for assistant replies: **bold** and `code` (rendered as React nodes, never HTML). */
+function RichText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+          <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+        ) : part.startsWith("`") && part.endsWith("`") && part.length > 2 ? (
+          <code key={i} className="rounded bg-black/20 px-1 py-0.5 font-mono text-[0.85em]">{part.slice(1, -1)}</code>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
 }
 
 function JobProgress({ job, onCancel }: { job: Job; onCancel: () => void }) {
@@ -60,7 +80,7 @@ function JobProgress({ job, onCancel }: { job: Job; onCancel: () => void }) {
   );
 }
 
-export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, generationEstimate, aiImages, aiLabel, onGenerate, onSend, onCancel, generationUnavailable }: Props) {
+export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, generationEstimate, aiImages, aiLabel, asking, onGenerate, onSend, onCancel, generationUnavailable }: Props) {
   const [brief, setBrief] = useState(prompt);
   const [draft, setDraft] = useState("");
   const [confirm, setConfirm] = useState<null | { kind: "generate" | "edit"; estimate: CostEstimate; text: string }>(null);
@@ -79,7 +99,10 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
     setSending(true);
     try {
       if (kind === "generate") await onGenerate(text, estimate.total);
-      else {
+      else if (estimate.action === "ask") {
+        setDraft("");
+        await onSend(text, 0);
+      } else {
         await onSend(text, estimate.total);
         setDraft("");
       }
@@ -103,9 +126,17 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
         {visible.map((m) => (
           <div key={m.id} className={cn("max-w-[92%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm leading-relaxed", m.role === "user" ? "ml-auto bg-primary/15" : "bg-muted/50")}>
             {m.role === "assistant" && typeof m.metadata?.version_number === "number" && <span className="mb-1 block text-[10px] uppercase tracking-wider text-primary">Version {m.metadata.version_number as number}</span>}
-            {m.content}
+            {m.role === "assistant" ? <RichText text={m.content} /> : m.content}
           </div>
         ))}
+        {asking && (
+          <>
+            <div className="ml-auto max-w-[92%] whitespace-pre-wrap rounded-xl bg-primary/15 px-3 py-2 text-sm leading-relaxed">{asking}</div>
+            <div className="flex w-fit items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground" role="status">
+              <Loader2 className="size-3.5 animate-spin" /> Thinking…
+            </div>
+          </>
+        )}
         {activeJob && <JobProgress job={activeJob} onCancel={onCancel} />}
         <div ref={bottom} />
       </div>
@@ -160,20 +191,21 @@ export function ChatPanel({ hasVersion, prompt, messages, activeJob, credits, ge
                     e.currentTarget.form?.requestSubmit();
                   }
                 }}
-                placeholder="Ask for a change…"
+                placeholder="Ask a question or request a change…"
                 className="resize-none pr-12 text-sm"
               />
-              <Button type="submit" size="icon-sm" className="absolute bottom-2 right-2" aria-label="Send" disabled={!!activeJob || sending || !editEstimate || !!generationUnavailable}>
+              <Button type="submit" size="icon-sm" className="absolute bottom-2 right-2" aria-label="Send" disabled={!!activeJob || sending || !!asking || !editEstimate || !!generationUnavailable}>
                 {sending ? <Loader2 className="animate-spin" /> : <ArrowUp />}
               </Button>
             </div>
             <p className="flex items-center gap-1 text-[11px] text-muted-foreground" aria-live="polite">
               {editEstimate ? (
                 <>
-                  <Coins className="size-3 text-primary" /> {editEstimate.action === "edit-major" ? "Major redesign" : "Targeted edit"} · {editEstimate.total} credits · {credits.total} available
+                  <Coins className="size-3 text-primary" />{" "}
+                  {editEstimate.action === "ask" ? "Question · free, doesn't change the page" : `${editEstimate.action === "edit-major" ? "Major redesign" : "Targeted edit"} · ${editEstimate.total} credits · ${credits.total} available`}
                 </>
               ) : (
-                <>Edits cost credits; the exact cost shows here before you send.</>
+                <>Ask a question for free, or request a change — the exact cost shows here before you send.</>
               )}
             </p>
           </form>

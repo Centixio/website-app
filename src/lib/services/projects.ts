@@ -8,7 +8,8 @@ import type { Session } from "@/lib/auth/session";
 import { HttpError } from "@/lib/api/http";
 import type { AssetSummary } from "@/lib/recommend/engine";
 import type { Job, UserStore } from "@/lib/data/types";
-import { estimateEdit, estimateGeneration, diffConfig, classifyEdit, editImageBudget, generationImageBudget } from "@/lib/credits/estimate";
+import { estimateEdit, estimateGeneration, diffConfig, classifyEdit, editImageBudget, generationImageBudget, isQuestion } from "@/lib/credits/estimate";
+import { ProviderError } from "@/lib/ai/provider";
 import { reapplyConfig, specToPlan } from "@/lib/spec/normalize";
 import { validateOutput } from "@/lib/spec/validate";
 import { referencedAssetIds, renderPortable, renderPreview } from "@/lib/pipeline/render";
@@ -87,6 +88,7 @@ export async function startEdit(session: Session, projectId: string, input: { me
   if (!project) throw new HttpError(404, "not_found", "Project not found.");
   if (!project.currentVersionId) throw new HttpError(409, "no_version", "Generate the landing page first, then refine it in chat.");
   const { config } = await store.getConfig(projectId);
+  if (isQuestion(input.message)) throw new HttpError(400, "is_question", "Questions are answered for free — send this to the ask endpoint.");
   const opts = { aiImages: aiImagesAvailable() };
   const estimate = estimateEdit(input.message, opts);
   confirmCost(input.expectedCost, estimate.total);
@@ -101,6 +103,40 @@ export async function startEdit(session: Session, projectId: string, input: { me
   });
   schedule(job);
   return { job, estimate };
+}
+
+/**
+ * Answer a question about the page in chat. Free (rate-limited), synchronous,
+ * and never changes the page or creates a version.
+ */
+export async function askQuestion(session: Session, projectId: string, input: { message: string }) {
+  const { store } = session;
+  const provider = requireProvider();
+  const project = await store.getProject(projectId);
+  if (!project) throw new HttpError(404, "not_found", "Project not found.");
+  if (!(await store.checkRateLimit("ask", LIMITS.questionsPerHour, 3600))) {
+    throw new HttpError(429, "rate_limited", "You've asked a lot of questions in the last hour. Please try again a little later.");
+  }
+  const [messages, current] = await Promise.all([
+    store.listMessages(projectId),
+    project.currentVersionId ? store.getVersion(projectId, project.currentVersionId) : Promise.resolve(null),
+  ]);
+  const history = messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-LIMITS.chatContextMessages)
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+  await store.addUserMessage(projectId, input.message, { kind: "question" });
+  let reply: string;
+  try {
+    reply = await provider.answer({ question: input.message, prompt: project.prompt, current: current ? specToPlan(current.spec) : null, history });
+  } catch (err) {
+    const message = err instanceof ProviderError ? err.message : "The assistant couldn't answer right now. Please try again.";
+    if (!(err instanceof ProviderError)) console.error("[ask]", err);
+    await store.addAssistantMessage(projectId, message, { kind: "answer", error: true });
+    throw new HttpError(503, "ai_unavailable", message);
+  }
+  await store.addAssistantMessage(projectId, reply, { kind: "answer" });
+  return { reply };
 }
 
 /** Apply unapplied settings: free re-assembly when possible, otherwise a charged AI edit. */
