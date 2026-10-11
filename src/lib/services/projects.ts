@@ -13,6 +13,7 @@ import { reapplyConfig, specToPlan } from "@/lib/spec/normalize";
 import { validateOutput } from "@/lib/spec/validate";
 import { referencedAssetIds, renderPortable, renderPreview } from "@/lib/pipeline/render";
 import { runJobNow } from "@/lib/pipeline/runner";
+import { netlifySiteUrl, triggerBackgroundRunner } from "@/lib/pipeline/background";
 import { demoSignedAssetUrl } from "@/lib/data/demo-store";
 
 export async function assetSummaries(store: UserStore, projectId: string): Promise<AssetSummary[]> {
@@ -33,6 +34,15 @@ function requireProvider() {
 /** Start execution right after the response is sent (inline mode). Durable regardless: workers/cron pick up anything left queued. */
 function schedule(job: Job) {
   if (env.jobRunner() !== "inline" || job.status !== "queued") return;
+  const site = netlifySiteUrl();
+  if (site) {
+    // Netlify cuts request functions off long before a generation finishes; hand off to the background function.
+    after(async () => {
+      const ok = await triggerBackgroundRunner(site).catch((err) => (console.error("[runner] background trigger failed", err), false));
+      if (!ok) console.error("[runner] background runner not started; the scheduled sweeper will retry", job.id);
+    });
+    return;
+  }
   after(async () => {
     try {
       await runJobNow(job.id);

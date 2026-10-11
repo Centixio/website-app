@@ -184,8 +184,8 @@ export function PreviewPane({ projectId, versions, currentVersionId, viewedVersi
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2">
         <ToggleGroup type="single" value={device} onValueChange={(v) => v && setDevice(v as Device)} variant="outline" size="sm" aria-label="Preview size">
           <ToggleGroupItem value="desktop" aria-label="Desktop"><Monitor /></ToggleGroupItem>
-          <ToggleGroupItem value="tablet" aria-label="Tablet"><Tablet /></ToggleGroupItem>
-          <ToggleGroupItem value="mobile" aria-label="Mobile"><Smartphone /></ToggleGroupItem>
+          <ToggleGroupItem value="mobile" aria-label="Phone"><Smartphone /></ToggleGroupItem>
+          <ToggleGroupItem value="tablet" aria-label="Tablet"><Tablet className="rotate-90" /></ToggleGroupItem>
         </ToggleGroup>
         <Tooltip>
           <TooltipTrigger asChild>

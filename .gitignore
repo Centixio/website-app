@@ -52,3 +52,6 @@ next-env.d.ts
 /films/.build
 /films/.preview
 /films/*.log
+
+# bundled Netlify functions (built from netlify/functions-src)
+/netlify/functions

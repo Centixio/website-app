@@ -9,6 +9,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // On Netlify, jobs run in a Background Function at this URL (see src/lib/pipeline/background.ts).
+  env: { CX_NETLIFY_SITE_URL: process.env.NETLIFY === "true" ? (process.env.URL ?? "") : "" },
   // Tailwind CSS v4 runs as a Turbopack loader.
   turbopack: {
     rules: {

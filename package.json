@@ -13,7 +13,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:netlify-functions": "node scripts/build-netlify-functions.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",
